@@ -8,6 +8,15 @@ _Learn about the person you're helping. Update this as you go._
 - **Timezone:** Asia/Singapore
 - **Notes:** Set during bootstrap conversation on 2026-02-24.
 
+## Interaction Preferences
+
+- **Bluntness:** Very direct
+- **Autonomy (workspace):** Ask before most changes
+- **External actions (messages/posts/emails):** Ask unless explicitly told “you can send”
+- **Code/system changes:** Ask before installs; never destructive without asking
+- **Style default:** Short with occasional detail
+- **Git workflow:** Always commit when any workspace file is changed
+
 ## Context
 
 _(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
