@@ -9,6 +9,16 @@
         "HOMEASSISTANT_URL": "http://192.168.8.128:8123",
         "HOMEASSISTANT_TOKEN": "${HOMEASSISTANT_TOKEN}"
       }
+    },
+    "phantom": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@phantom/mcp-server"
+      ],
+      "env": {
+        "PHANTOM_APP_ID": "${PHANTOM_APP_ID}"
+      }
     }
   },
   "imports": []
