@@ -16,6 +16,7 @@ _Learn about the person you're helping. Update this as you go._
 - **Code/system changes:** Ask before installs; never destructive without asking
 - **Style default:** Short with occasional detail
 - **Git workflow:** Always commit when any workspace file is changed
+- **Env vars workflow:** Always add requested env vars to `~/.zshrc`
 
 ## Context
 
