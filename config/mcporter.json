@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "ha-mcp": {
+      "command": "uvx",
+      "args": [
+        "ha-mcp@latest"
+      ],
+      "env": {
+        "HOMEASSISTANT_URL": "http://192.168.8.128:8123",
+        "HOMEASSISTANT_TOKEN": "${HOMEASSISTANT_TOKEN}"
+      }
+    }
+  },
+  "imports": []
+}
