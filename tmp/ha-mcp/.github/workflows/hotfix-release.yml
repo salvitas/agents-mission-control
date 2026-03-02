@@ -1,0 +1,140 @@
+name: Hotfix Release
+
+# Releases hotfix branches when their PR is merged to master
+# Hotfix branches must be based on a stable tag, not master HEAD
+on:
+  pull_request:
+    types: [closed]
+    branches: [master, main]
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  semantic-release:
+    name: Semantic Release
+    # Only run for merged hotfix PRs
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'hotfix/')
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.semantic.outputs.released }}
+      version: ${{ steps.semantic.outputs.version }}
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+      issues: write
+
+    steps:
+    - name: Checkout hotfix branch commit
+      uses: actions/checkout@v6
+      with:
+        # Checkout the original hotfix commit, not the merge commit
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Validate hotfix is based on stable
+      run: |
+        # Get the stable tag (moving tag that points to latest stable)
+        if ! git rev-parse stable &>/dev/null; then
+          echo "::error::No 'stable' tag found. Cannot validate hotfix base."
+          exit 1
+        fi
+
+        STABLE_COMMIT=$(git rev-parse stable)
+        HOTFIX_BASE=$(git merge-base $STABLE_COMMIT HEAD)
+
+        # The hotfix should be based on or after the stable tag
+        if git merge-base --is-ancestor $STABLE_COMMIT HEAD; then
+          echo "✓ Hotfix is based on stable tag"
+        else
+          # Check if stable is ancestor of hotfix base
+          if git merge-base --is-ancestor $HOTFIX_BASE $STABLE_COMMIT; then
+            echo "✓ Hotfix is based on a commit at or before stable"
+          else
+            echo "::error::Hotfix contains commits from master that are not in stable release"
+            echo "Hotfix must be branched from the 'stable' tag"
+            exit 1
+          fi
+        fi
+
+    - name: Run semantic-release
+      id: semantic
+      uses: python-semantic-release/python-semantic-release@v10.5.3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        verbosity: "2"
+        # Don't create GitHub release here - we'll create a draft below
+        vcs_release: "false"
+
+    - name: Create draft GitHub release
+      if: steps.semantic.outputs.released == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION="${{ steps.semantic.outputs.version }}"
+        TAG="v${VERSION}"
+
+        # Extract changelog for this version
+        awk "/^## v${VERSION}/,/^## v[0-9]/" CHANGELOG.md | head -n -1 > release_notes.md
+        if [ ! -s release_notes.md ]; then
+          echo "Hotfix Release v${VERSION}" > release_notes.md
+          echo "" >> release_notes.md
+          echo "Critical bug fix - see PR #${{ github.event.pull_request.number }}" >> release_notes.md
+        fi
+
+        # Create draft release (build-binary.yml will add binaries and publish)
+        gh release create "$TAG" \
+          --title "🚨 Hotfix $TAG" \
+          --notes-file release_notes.md \
+          --draft
+
+        echo "✓ Created draft hotfix release $TAG (waiting for binaries)"
+
+    - name: Copy changelog to addon directory
+      if: steps.semantic.outputs.released == 'true'
+      run: |
+        set -e
+        cp CHANGELOG.md homeassistant-addon/CHANGELOG.md
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add homeassistant-addon/CHANGELOG.md
+        git diff --staged --quiet || git commit -m "chore(addon): sync changelog for Home Assistant add-on [skip ci]"
+        git push origin HEAD:master
+
+    - name: Update stable git tag
+      if: steps.semantic.outputs.released == 'true'
+      run: |
+        VERSION="${{ steps.semantic.outputs.version }}"
+        echo "Updating 'stable' tag to point to v$VERSION"
+
+        git tag -d stable 2>/dev/null || true
+        git push origin :refs/tags/stable 2>/dev/null || true
+
+        git tag stable "v$VERSION"
+        git push origin stable
+
+        echo "✓ 'stable' tag now points to v$VERSION"
+
+    - name: Summary
+      if: steps.semantic.outputs.released == 'true'
+      run: |
+        echo "## 🚨 Hotfix Release" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** ${{ steps.semantic.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** ${{ github.event.pull_request.head.ref }}" >> $GITHUB_STEP_SUMMARY
+        echo "**PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+
+  # Build binaries and attach to release
+  build-and-release:
+    needs: semantic-release
+    if: needs.semantic-release.outputs.released == 'true'
+    uses: ./.github/workflows/_build-and-release.yml
+    with:
+      release_tag: v${{ needs.semantic-release.outputs.version }}
+      is_prerelease: false
+    permissions:
+      contents: write

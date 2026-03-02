@@ -1,0 +1,2396 @@
+# media_centre_card.yaml
+# Purpose:
+#   All-in-one Media Centre for an Alexa-based Home Assistant setup.
+#   - Shows the active Echo player in a bubble media card (via sensor.active_echo_player).
+#   - Popups for Announcements, Music Requests, Drop-In intercom, Alarms/Timers/Reminders.
+#   - A scrolling ticker for Top News + upcoming alarms/timers/reminders across all Echo devices.
+#
+# Dependencies (custom cards / integrations):
+#   - custom:mod-card
+#   - custom:bubble-card
+#   - custom:button-card
+#   - custom:state-switch
+#   - mushroom cards: mushroom-select-card, mushroom-number-card, mushroom-title-card
+#   - custom:text-input-row
+#   - card-mod
+#   - browser_mod (for popups & javascript actions)
+#
+# Key entities (adapt for your setup):
+#   - sensor.active_echo_player
+#   - media_player.*_echo  (Hallway, Kitchen, Lounge, Master Bedroom, Upstairs, Room 2/3/4, Study, Everywhere)
+#   - media_player.lg_webos_tv, media_player.kitchen_tv
+#
+#   Announcement popup:
+#     - input_text.announcement_message
+#     - input_boolean.mic_recording
+#     - input_boolean.echo_hallway, echo_kitchen, echo_lounge, echo_master_bedroom,
+#       echo_upstairs, echo_room_2, echo_room_3, echo_room_4, echo_study, all_echoes
+#     - script.make_an_announcement
+#
+#   Music Request popup:
+#     - input_text.music_request_query
+#     - input_text.last_music_request
+#     - input_select.music_target_speaker
+#     - input_select.music_transfer_targets
+#     - script.play_requested_music
+#     - script.transfer_music_to_echo
+#
+#   Drop-In popup:
+#     - input_select.intercom_source
+#     - input_select.intercom_target
+#     - script.initiate_intercom
+#
+#   Alarms / Timers / Reminders popup:
+#     - input_select.alexa_popup_tab
+#     - input_select.alexa_alarm_device
+#     - input_select.alarm_hour
+#     - input_number.alarm_minute
+#     - input_select.alarm_period
+#     - script.set_alexa_alarm
+#     - input_select.alexa_timer_device
+#     - input_number.alexa_timer_value
+#     - input_select.alexa_timer_unit
+#     - script.set_alexa_timer
+#     - input_select.alexa_reminder_device
+#     - input_text.alexa_reminder_text
+#     - script.set_alexa_reminder
+#
+#   News + upcoming events ticker:
+#     - event.top_stories_google_news
+#     - input_boolean.5_second_timer          (used purely as a regular "tick" to refresh display)
+#     - sensor.*_echo_next_reminder           (for each Echo)
+#     - sensor.*_echo_next_alarm
+#     - sensor.*_echo_next_timer
+#
+# Notes:
+#   - All styling is inline to support Storage Mode (no !include / templates).
+#   - Replace entity IDs with your own if names differ.
+
+
+
+type: custom:mod-card
+style:
+  .: |
+    ha-card {
+      width: 100%;
+      height: 250px;
+      background: linear-gradient(135deg, rgba(255, 0, 00, 0.25), rgba(50, 60, 110, 0.55));
+      border-radius: 24px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(30px);
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.25),
+        inset 0 0 8px rgba(255, 255, 255, 0.03);
+      padding: 8px;
+      margin: 0 auto;
+      margin-top: 0px;
+      margin-bottom: -14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.3s ease;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+card:
+  type: vertical-stack
+  cards:
+    - type: custom:state-switch
+      entity: sensor.active_echo_player
+      states:
+        media_player.master_bedroom_echo:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.master_bedroom_echo
+          hide:
+            power_button: true
+            previous_button: true
+            next_button: true
+          sub_button:
+            - icon: mdi:bed-double
+              name: Master Bedroom
+              show_background: false
+              show_name: false
+              tap_action:
+                action: none
+        media_player.study_echo:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.study_echo
+          hide:
+            power_button: true
+            previous_button: true
+            next_button: true
+          sub_button:
+            - icon: mdi:desk
+              name: Study
+              show_background: false
+              show_name: false
+              tap_action:
+                action: none
+        media_player.kitchen_echo:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.kitchen_echo
+          hide:
+            power_button: true
+            previous_button: true
+            next_button: true
+          sub_button:
+            - icon: mdi:silverware-fork-knife
+              name: Kitchen
+              show_background: false
+              show_name: false
+              tap_action:
+                action: none
+        media_player.lounge_echo:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.lounge_echo
+          hide:
+            power_button: true
+            previous_button: true
+            next_button: true
+          sub_button:
+            - icon: mdi:sofa
+              name: Lounge
+              show_background: false
+              show_name: false
+              tap_action:
+                action: none
+        media_player.hallway_echo:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.hallway_echo
+          hide:
+            power_button: true
+            previous_button: true
+            next_button: true
+          sub_button:
+            - icon: mdi:mirror-variant
+              name: Hallway
+              show_background: false
+              show_name: false
+              tap_action:
+                action: none
+        media_player.room_2_echo:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.room_2_echo
+          hide:
+            power_button: true
+            previous_button: true
+            next_button: true
+          sub_button:
+            - icon: mdi:bed
+              name: 2
+              show_background: false
+              show_name: true
+              tap_action:
+                action: none
+        media_player.room_3_echo:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.room_3_echo
+          hide:
+            power_button: true
+            previous_button: true
+            next_button: true
+          sub_button:
+            - icon: mdi:bed
+              name: 3
+              show_background: false
+              show_name: true
+              tap_action:
+                action: none
+        media_player.room_4_echo:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.room_4_echo
+          hide:
+            power_button: true
+            previous_button: true
+            next_button: true
+          sub_button:
+            - icon: mdi:bed
+              name: 4
+              show_background: false
+              show_name: true
+              tap_action:
+                action: none
+        media_player.upstairs_echo:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.upstairs_echo
+          hide:
+            power_button: true
+            previous_button: true
+            next_button: true
+          sub_button:
+            - icon: mdi:stairs
+              name: Upstairs
+              show_background: false
+              show_name: false
+              tap_action:
+                action: none
+        media_player.everywhere:
+          type: custom:bubble-card
+          card_type: media-player
+          entity: media_player.everywhere
+          hide:
+            power_button: true
+            previous_button: true
+      default:
+        type: custom:mod-card
+        card:
+          type: custom:button-card
+          name: ""
+    - type: custom:mod-card
+      style:
+        .: |
+          ha-card {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 1.5em;
+            padding: 8px 0;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+                }
+      card:
+        type: horizontal-stack
+        cards:
+          - type: custom:mod-card
+            style:
+              .: |
+                ha-card {
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  flex: 1;
+                  background: none;
+                  box-shadow: none;
+                }
+            card:
+              type: custom:button-card
+              icon: mdi:bullhorn-outline
+              name: ""
+              styles:
+                card:
+                  - border-radius: 50%
+                  - width: 42px
+                  - height: 42px
+                  - background: >-
+                      linear-gradient(145deg, rgba(255,255,255,0.25),
+                      rgba(255,255,255,0.05))
+                  - box-shadow: >-
+                      0 4px 12px rgba(0,0,0,0.25), inset 0 1px 2px
+                      rgba(255,255,255,0.2)
+                  - display: flex
+                  - justify-content: center
+                  - align-items: center
+                  - transition: all 0.3s ease
+                icon:
+                  - color: white
+                  - width: 28px
+              card_mod:
+                style: |
+                  @keyframes tapPulse {
+                    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5); }
+                    70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+                  }
+                  ha-card:active {
+                    animation: tapPulse 0.4s ease-out;
+                  }
+              tap_action:
+                action: fire-dom-event
+                browser_mod:
+                  service: browser_mod.popup
+                  data:
+                    title: 📢 Make an Announcement
+                    size: normal
+                    style:
+                      .mdc-dialog__surface:
+                        border-radius: 24px
+                        background: none
+                        box-shadow: none
+                    content:
+                      type: custom:mod-card
+                      style:
+                        .: |
+                          ha-card {
+                            background: linear-gradient(135deg, rgba(220, 60, 100, 0.9), rgba(100, 60, 220, 0.9));
+                            border-radius: 24px;
+                            padding: 10px;
+                            box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+                          }
+                      card:
+                        type: vertical-stack
+                        cards:
+                          - type: custom:mod-card
+                            style:
+                              .: |
+                                @keyframes pulseGlow {
+                                  0% { box-shadow: 0 0 8px 2px #ffd700; }
+                                  50% { box-shadow: 0 0 16px 8px #ffac00; }
+                                  100% { box-shadow: 0 0 8px 2px #ffd700; }
+                                }
+                                ha-card {
+                                  background: linear-gradient(135deg, rgba(220, 60, 100, 0.9), rgba(100, 60, 220, 0.9));
+                                  border-radius: 24px;
+                                  padding: 10px;
+                                  box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+                                  margin-bottom: -15px !important;
+                                }
+                            card:
+                              type: vertical-stack
+                              cards:
+                                - type: custom:mod-card
+                                  style:
+                                    .: |
+                                      ha-card {
+                                        background: rgba(255,255,255,0.08);
+                                        border-radius: 16px;
+                                        box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+                                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                                        font-size: 16px;
+                                        padding: 8px;
+                                        margin: 0 auto;
+                                        width: 100%;
+                                        max-width: 600px;
+                                      }
+                                  card:
+                                    type: entities
+                                    show_header_toggle: false
+                                    entities:
+                                      - entity: input_text.announcement_message
+                                - type: custom:mod-card
+                                  style:
+                                    .: |
+                                      ha-card {
+                                        display: flex;
+                                        justify-content: center;
+                                        background: none;
+                                        box-shadow: none;
+                                        
+                                      }
+                                  card:
+                                    type: custom:button-card
+                                    entity: input_boolean.mic_recording
+                                    icon: mdi:microphone
+                                    show_icon: true
+                                    show_name: false
+                                    tap_action:
+                                      action: call-service
+                                      service: browser_mod.javascript
+                                      data:
+                                        code: >
+                                          if (!window.SpeechRecognition &&
+                                          !window.webkitSpeechRecognition) {
+                                            alert("Speech recognition not supported on this browser.");
+                                            return;
+                                          }
+
+                                          const id = 'mic_recognition'; if
+                                          (!window[id]) {
+                                            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                                            recognition.lang = 'en-GB';
+                                            recognition.interimResults = false;
+                                            recognition.continuous = false;
+
+                                            recognition.onresult = function(event) {
+                                              const result = event.results[0][0].transcript;
+                                              hass.callService('input_text', 'set_value', {
+                                                entity_id: 'input_text.announcement_message',
+                                                value: result
+                                              });
+                                            };
+
+                                            recognition.onend = function() {
+                                              hass.callService('input_boolean', 'turn_off', {
+                                                entity_id: 'input_boolean.mic_recording'
+                                              });
+                                              delete window[id];
+                                            };
+
+                                            window[id] = recognition;
+                                            recognition.start();
+                                            hass.callService('input_boolean', 'turn_on', {
+                                              entity_id: 'input_boolean.mic_recording'
+                                            });
+                                          } else {
+                                            window[id].stop();
+                                          }
+                                    styles:
+                                      card:
+                                        - width: 100%
+                                        - padding: 11px
+                                        - border-radius: 40px
+                                        - background: rgba(255,255,255,0.15)
+                                        - backdrop-filter: blur(6px)
+                                        - box-shadow: 0 0px 6px rgba(0,0,0,0.2)
+                                        - font-weight: bold
+                                        - color: white
+                                        - position: relative
+                                        - overflow: visible
+                                      icon:
+                                        - color: white
+                                        - width: 42px
+                                        - height: 42px
+                                        - z-index: 2
+                                      custom_fields:
+                                        ring:
+                                          - position: absolute
+                                          - top: 0%
+                                          - left: 0%
+                                          - transform: translate(-50%, -50%)
+                                          - width: 64px
+                                          - height: 64px
+                                          - z-index: 1
+                                          - pointer-events: none
+                                    custom_fields:
+                                      ring: >
+                                        <svg viewBox="0 0 100 100"
+                                        class="glow-ring">
+                                          <defs>
+                                            <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="0%">
+                                              <stop offset="0%" stop-color="gold" stop-opacity="1" />
+                                              <stop offset="10%" stop-color="gold" stop-opacity="1" />
+                                              <stop offset="90%" stop-color="gold" stop-opacity="0" />
+                                              <stop offset="100%" stop-color="gold" stop-opacity="0" />
+                                            </linearGradient>
+                                          </defs>
+                                          <circle cx="50" cy="50" r="42"
+                                            stroke="url(#glow)"
+                                            stroke-width="4"
+                                            fill="none"
+                                            stroke-linecap="round"
+                                            stroke-dasharray="220 150"
+                                            stroke-dashoffset="0" />
+                                        </svg>
+                                    state:
+                                      - value: "on"
+                                        styles:
+                                          custom_fields:
+                                            ring:
+                                              - animation: rotateGlow 2s linear infinite
+                                              - opacity: 1
+                                      - value: "off"
+                                        styles:
+                                          custom_fields:
+                                            ring:
+                                              - animation: none
+                                              - opacity: 0
+                                    card_mod:
+                                      style: |
+                                        .glow-ring {
+                                          width: 64px;
+                                          height: 64px;
+                                          animation: rotateGlow 2s linear infinite;
+                                          filter: drop-shadow(0 0 1px gold) blur(1px);
+                                          transform-origin: center center;
+                                        }
+
+                                        @keyframes rotateGlow {
+                                          0%   { transform: rotate(0deg); }
+                                          100% { transform: rotate(360deg); }
+                                        }
+
+                                        ha-card {
+                                          --mdc-ripple-press-opacity: 0 !important;
+                                          --mdc-ripple-hover-opacity: 0 !important;
+                                          --mdc-ripple-color: transparent !important;
+                                          outline: none !important;
+                                          background: transparent !important;
+                                          transition: transform 0.1s ease-in-out;
+                                        }
+
+                                        ha-card:focus {
+                                          outline: none !important;
+                                        }
+
+                                        ha-card:active {
+                                          transform: scale(0.92);
+                                        }
+                                - type: horizontal-stack
+                                  cards:
+                                    - type: custom:button-card
+                                      name: 🍽️ Food is ready
+                                      tap_action:
+                                        action: call-service
+                                        service: input_text.set_value
+                                        data:
+                                          entity_id: input_text.announcement_message
+                                          value: Food is ready
+                                      styles:
+                                        card:
+                                          - padding: 8px
+                                          - font-size: 14px
+                                          - font-weight: 600
+                                          - border-radius: 12px
+                                          - background: rgba(255,255,255,0.15)
+                                          - backdrop-filter: blur(6px)
+                                          - color: white
+                                          - box-shadow: 0 0px 6px rgba(0,0,0,0.2)
+                                          - transition: all 0.3s ease
+                                    - type: custom:button-card
+                                      name: 🛑 Stop fighting
+                                      tap_action:
+                                        action: call-service
+                                        service: input_text.set_value
+                                        data:
+                                          entity_id: input_text.announcement_message
+                                          value: Stop fighting
+                                      styles:
+                                        card:
+                                          - padding: 8px
+                                          - font-size: 14px
+                                          - font-weight: 600
+                                          - border-radius: 12px
+                                          - background: rgba(255,255,255,0.15)
+                                          - backdrop-filter: blur(6px)
+                                          - color: white
+                                          - box-shadow: 0 0px 6px rgba(0,0,0,0.2)
+                                          - transition: all 0.3s ease
+                                    - type: custom:button-card
+                                      name: 🤫 Keep quiet please!
+                                      tap_action:
+                                        action: call-service
+                                        service: input_text.set_value
+                                        data:
+                                          entity_id: input_text.announcement_message
+                                          value: Keep quiet please!
+                                      styles:
+                                        card:
+                                          - padding: 8px
+                                          - font-size: 14px
+                                          - font-weight: 600
+                                          - border-radius: 12px
+                                          - background: rgba(255,255,255,0.15)
+                                          - backdrop-filter: blur(6px)
+                                          - color: white
+                                          - box-shadow: 0 0px 6px rgba(0,0,0,0.2)
+                                          - transition: all 0.3s ease
+                                - type: custom:mushroom-title-card
+                                  title: Choose Speakers
+                                  alignment: center
+                                  card_mod:
+                                    style: |
+                                      ha-card {
+                                        background: none;
+                                        color: white;
+                                        font-size: 18px;
+                                        font-weight: 800;
+                                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                                        font-color: white;
+                                        margin-top: -15px !important;
+                                        margin-bottom: 5px !important;
+                                      }
+                                - type: grid
+                                  columns: 3
+                                  square: false
+                                  cards:
+                                    - type: custom:button-card
+                                      entity: input_boolean.echo_hallway
+                                      name: Hallway
+                                      icon: mdi:mirror
+                                      styles:
+                                        card:
+                                          - background: rgba(255,255,255,0.12)
+                                          - backdrop-filter: blur(6px)
+                                          - border-radius: 18px
+                                          - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                          - color: white
+                                          - font-size: 14px
+                                          - font-weight: bold
+                                          - padding: 8px
+                                          - transition: all 0.4s ease
+                                        icon:
+                                          - width: 28px
+                                          - color: white
+                                        name:
+                                          - color: white
+                                      state:
+                                        - value: "on"
+                                          styles:
+                                            card:
+                                              - background: rgba(255, 215, 0, 0.25)
+                                              - color: white
+                                              - border: 1px solid rgba(255, 215, 0, 0.8)
+                                              - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                              - animation: pulseGlow 1s infinite
+                                            icon:
+                                              - color: white
+                                            name:
+                                              - color: Black
+                                    - type: custom:button-card
+                                      entity: input_boolean.echo_kitchen
+                                      name: Kitchen
+                                      icon: mdi:silverware-fork-knife
+                                      styles:
+                                        card:
+                                          - background: rgba(255,255,255,0.12)
+                                          - backdrop-filter: blur(6px)
+                                          - border-radius: 18px
+                                          - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                          - color: white
+                                          - font-size: 14px
+                                          - font-weight: bold
+                                          - padding: 8px
+                                          - transition: all 0.4s ease
+                                        icon:
+                                          - width: 28px
+                                          - color: white
+                                        name:
+                                          - color: white
+                                      state:
+                                        - value: "on"
+                                          styles:
+                                            card:
+                                              - background: rgba(255, 215, 0, 0.25)
+                                              - color: white
+                                              - border: 1px solid rgba(255, 215, 0, 0.8)
+                                              - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                              - animation: pulseGlow 1s infinite
+                                            icon:
+                                              - color: white
+                                            name:
+                                              - color: Black
+                                    - type: custom:button-card
+                                      entity: input_boolean.echo_lounge
+                                      name: Lounge
+                                      icon: mdi:sofa
+                                      styles:
+                                        card:
+                                          - background: rgba(255,255,255,0.12)
+                                          - backdrop-filter: blur(6px)
+                                          - border-radius: 18px
+                                          - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                          - color: white
+                                          - font-size: 14px
+                                          - font-weight: bold
+                                          - padding: 8px
+                                          - transition: all 0.4s ease
+                                        icon:
+                                          - width: 28px
+                                          - color: white
+                                        name:
+                                          - color: white
+                                      state:
+                                        - value: "on"
+                                          styles:
+                                            card:
+                                              - background: rgba(255, 215, 0, 0.25)
+                                              - color: white
+                                              - border: 1px solid rgba(255, 215, 0, 0.8)
+                                              - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                              - animation: pulseGlow 1s infinite
+                                            icon:
+                                              - color: white
+                                            name:
+                                              - color: Black
+                                    - type: custom:button-card
+                                      entity: input_boolean.echo_master_bedroom
+                                      name: Master Bedroom
+                                      icon: mdi:bed-king
+                                      styles:
+                                        card:
+                                          - background: rgba(255,255,255,0.12)
+                                          - backdrop-filter: blur(6px)
+                                          - border-radius: 18px
+                                          - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                          - color: white
+                                          - font-size: 14px
+                                          - font-weight: bold
+                                          - padding: 8px
+                                          - transition: all 0.4s ease
+                                        icon:
+                                          - width: 28px
+                                          - color: white
+                                        name:
+                                          - color: white
+                                      state:
+                                        - value: "on"
+                                          styles:
+                                            card:
+                                              - background: rgba(255, 215, 0, 0.25)
+                                              - color: white
+                                              - border: 1px solid rgba(255, 215, 0, 0.8)
+                                              - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                              - animation: pulseGlow 1s infinite
+                                            icon:
+                                              - color: white
+                                            name:
+                                              - color: Black
+                                    - type: custom:button-card
+                                      entity: input_boolean.echo_upstairs
+                                      name: Upstairs
+                                      icon: mdi:stairs
+                                      styles:
+                                        card:
+                                          - background: rgba(255,255,255,0.12)
+                                          - backdrop-filter: blur(6px)
+                                          - border-radius: 18px
+                                          - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                          - color: white
+                                          - font-size: 14px
+                                          - font-weight: bold
+                                          - padding: 8px
+                                          - transition: all 0.4s ease
+                                        icon:
+                                          - width: 28px
+                                          - color: white
+                                        name:
+                                          - color: white
+                                      state:
+                                        - value: "on"
+                                          styles:
+                                            card:
+                                              - background: rgba(255, 215, 0, 0.25)
+                                              - color: white
+                                              - border: 1px solid rgba(255, 215, 0, 0.8)
+                                              - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                              - animation: pulseGlow 1s infinite
+                                            icon:
+                                              - color: white
+                                            name:
+                                              - color: Black
+                                    - type: custom:button-card
+                                      entity: input_boolean.echo_room_2
+                                      name: Room 2
+                                      icon: mdi:bed
+                                      styles:
+                                        card:
+                                          - background: rgba(255,255,255,0.12)
+                                          - backdrop-filter: blur(6px)
+                                          - border-radius: 18px
+                                          - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                          - color: white
+                                          - font-size: 14px
+                                          - font-weight: bold
+                                          - padding: 8px
+                                          - transition: all 0.4s ease
+                                        icon:
+                                          - width: 28px
+                                          - color: white
+                                        name:
+                                          - color: white
+                                      state:
+                                        - value: "on"
+                                          styles:
+                                            card:
+                                              - background: rgba(255, 215, 0, 0.25)
+                                              - color: white
+                                              - border: 1px solid rgba(255, 215, 0, 0.8)
+                                              - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                              - animation: pulseGlow 1s infinite
+                                            icon:
+                                              - color: white
+                                            name:
+                                              - color: Black
+                                    - type: custom:button-card
+                                      entity: input_boolean.echo_room_3
+                                      name: Room 3
+                                      icon: mdi:bed
+                                      styles:
+                                        card:
+                                          - background: rgba(255,255,255,0.12)
+                                          - backdrop-filter: blur(6px)
+                                          - border-radius: 18px
+                                          - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                          - color: white
+                                          - font-size: 14px
+                                          - font-weight: bold
+                                          - padding: 8px
+                                          - transition: all 0.4s ease
+                                        icon:
+                                          - width: 28px
+                                          - color: white
+                                        name:
+                                          - color: white
+                                      state:
+                                        - value: "on"
+                                          styles:
+                                            card:
+                                              - background: rgba(255, 215, 0, 0.25)
+                                              - color: white
+                                              - border: 1px solid rgba(255, 215, 0, 0.8)
+                                              - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                              - animation: pulseGlow 1s infinite
+                                            icon:
+                                              - color: white
+                                            name:
+                                              - color: Black
+                                    - type: custom:button-card
+                                      entity: input_boolean.echo_room_4
+                                      name: Room 4
+                                      icon: mdi:bed
+                                      styles:
+                                        card:
+                                          - background: rgba(255,255,255,0.12)
+                                          - backdrop-filter: blur(6px)
+                                          - border-radius: 18px
+                                          - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                          - color: white
+                                          - font-size: 14px
+                                          - font-weight: bold
+                                          - padding: 8px
+                                          - transition: all 0.4s ease
+                                        icon:
+                                          - width: 28px
+                                          - color: white
+                                        name:
+                                          - color: white
+                                      state:
+                                        - value: "on"
+                                          styles:
+                                            card:
+                                              - background: rgba(255, 215, 0, 0.25)
+                                              - color: white
+                                              - border: 1px solid rgba(255, 215, 0, 0.8)
+                                              - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                              - animation: pulseGlow 1s infinite
+                                            icon:
+                                              - color: white
+                                            name:
+                                              - color: Black
+                                    - type: custom:button-card
+                                      entity: input_boolean.echo_study
+                                      name: Study
+                                      icon: mdi:desk
+                                      styles:
+                                        card:
+                                          - background: rgba(255,255,255,0.12)
+                                          - backdrop-filter: blur(6px)
+                                          - border-radius: 18px
+                                          - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                          - color: white
+                                          - font-size: 14px
+                                          - font-weight: bold
+                                          - padding: 8px
+                                          - transition: all 0.4s ease
+                                        icon:
+                                          - width: 28px
+                                          - color: white
+                                        name:
+                                          - color: white
+                                      state:
+                                        - value: "on"
+                                          styles:
+                                            card:
+                                              - background: rgba(255, 215, 0, 0.25)
+                                              - color: white
+                                              - border: 1px solid rgba(255, 215, 0, 0.8)
+                                              - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                              - animation: pulseGlow 1s infinite
+                                            icon:
+                                              - color: white
+                                            name:
+                                              - color: Black
+                                - type: horizontal-stack
+                                  cards:
+                                    - type: custom:mod-card
+                                      style:
+                                        .: |
+                                          ha-card {
+                                            width: 33%;
+                                            margin: 0 auto;
+                                          }
+                                      card:
+                                        type: custom:button-card
+                                        entity: input_boolean.all_echoes
+                                        name: Entire House
+                                        icon: mdi:home-group
+                                        styles:
+                                          card:
+                                            - background: rgba(255,255,255,0.12)
+                                            - backdrop-filter: blur(6px)
+                                            - border-radius: 18px
+                                            - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                            - color: white
+                                            - font-size: 14px
+                                            - font-weight: bold
+                                            - padding: 8px
+                                            - transition: all 0.4s ease
+                                          icon:
+                                            - width: 28px
+                                            - color: white
+                                          name:
+                                            - color: white
+                                        state:
+                                          - value: "on"
+                                            styles:
+                                              card:
+                                                - background: rgba(255, 215, 0, 0.25)
+                                                - color: white
+                                                - border: 1px solid rgba(255, 215, 0, 0.8)
+                                                - box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6)
+                                                - animation: pulseGlow 1s infinite
+                                              icon:
+                                                - color: white
+                                              name:
+                                                - color: Black
+                          - type: horizontal-stack
+                            cards:
+                              - type: custom:mod-card
+                                style:
+                                  .: |
+                                    ha-card {
+                                      width: 33%;
+                                      margin: 0 auto;
+                                    }
+                                card:
+                                  type: custom:button-card
+                                  name: 📣 Send
+                                  tap_action:
+                                    action: call-service
+                                    service: script.make_an_announcement
+                                  styles:
+                                    card:
+                                      - margin-top: 16px
+                                      - padding: 12px
+                                      - border: 1px solid rgba(255,255,255, 0.4)
+                                      - border-radius: 16px
+                                      - background: >-
+                                          linear-gradient(135deg,
+                                          rgba(255,255,255,0.6),
+                                          rgba(255,255,255,0.1))
+                                      - backdrop-filter: blur(10px)
+                                      - color: black
+                                      - font-weight: bold
+                                      - font-size: 18px
+                                      - box-shadow: 0 4px 16px rgba(0,0,0,0.1)
+                                      - text-align: center
+                                      - transition: transform 0.2s ease-in-out
+                                    name:
+                                      - justify-self: center
+                                    icon:
+                                      - display: none
+                                  card_mod:
+                                    style: |
+                                      @keyframes pressEffect {
+                                        0% { transform: scale(1); }
+                                        50% { transform: scale(0.93); }
+                                        100% { transform: scale(1); }
+                                      }
+                                      ha-card:active {
+                                        animation: pressEffect 0.3s ease forwards;
+                                      }
+          - type: custom:mod-card
+            style:
+              .: |
+                ha-card {
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  flex: 1;
+                  background: none;
+                  box-shadow: none;
+                }
+            card:
+              type: custom:button-card
+              icon: mdi:music-note
+              name: ""
+              tap_action:
+                action: fire-dom-event
+                browser_mod:
+                  service: browser_mod.popup
+                  data:
+                    title: 🎵 Music Request
+                    size: normal
+                    style:
+                      .mdc-dialog__surface:
+                        border-radius: 24px
+                        background: none
+                        box-shadow: none
+                    content:
+                      type: custom:mod-card
+                      style:
+                        .: |
+                          ha-card {
+                            background: linear-gradient(135deg, #9757a7, #4b7c84);
+
+                            border-radius: 24px;
+                            padding: 14px;
+                            box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+                            color: white;
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                          }
+                      card:
+                        type: vertical-stack
+                        cards:
+                          - type: custom:mod-card
+                            style:
+                              .: |
+                                ha-card {
+                                  background: linear-gradient(135deg, rgba(111, 22, 130, 0.95), rgba(211, 45, 75, 0.9));
+                                  border-radius: 24px;
+                                  padding: 14px;
+                                  box-shadow: 0 4px 40px rgba(0,0,0,0.1);
+                                }
+                            card:
+                              type: horizontal-stack
+                              cards:
+                                - type: custom:mod-card
+                                  card_mod:
+                                    style: |
+                                      ha-card {
+                                        background: rgba(255, 255, 255, 0.08);
+                                        border-radius: 20px;
+                                        backdrop-filter: blur(10px);
+                                        box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+                                      }
+                                      hui-text-input-row {
+                                        --paper-input-container-color: white;
+                                        --paper-input-container-input-color: white;
+                                        --paper-input-container-focus-color: gold;
+                                      }
+                                  card:
+                                    type: entities
+                                    entities:
+                                      - entity: input_text.music_request_query
+                                        name: Music Request Query
+                                - type: custom:button-card
+                                  entity: input_boolean.mic_recording
+                                  icon: mdi:microphone
+                                  show_name: false
+                                  tap_action:
+                                    action: call-service
+                                    service: browser_mod.javascript
+                                    data:
+                                      code: >
+                                        const id = 'mic_rec';
+
+                                        const micEntity =
+                                        'input_boolean.mic_recording';
+
+
+                                        if (!window[id]) {
+                                          const r = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                                          r.lang = 'en-GB';
+                                          r.continuous = false;
+                                          r.interimResults = false;
+
+                                          r.onresult = e => {
+                                            hass.callService('input_text', 'set_value', {
+                                              entity_id: 'input_text.music_request_query',
+                                              value: e.results[0][0].transcript
+                                            });
+                                          };
+
+                                          r.onend = () => {
+                                            setTimeout(() => {
+                                              hass.callService('input_boolean', 'turn_off', { entity_id: micEntity });
+                                            }, 500);
+                                            delete window[id];
+                                          };
+
+                                          window[id] = r;
+                                          hass.callService('input_boolean', 'turn_on', { entity_id: micEntity });
+
+                                          const el = document.querySelector('ha-card');
+                                          if (el) void el.offsetWidth;
+
+                                          r.start();
+                                        } else {
+                                          window[id].stop();
+                                          delete window[id];
+                                          hass.callService('input_boolean', 'turn_off', { entity_id: micEntity });
+                                        }
+                                  styles:
+                                    card:
+                                      - width: 50px
+                                      - height: 90px
+                                      - background: rgba(255,255,255,0.05)
+                                      - backdrop-filter: blur(10px)
+                                      - border-radius: 12px
+                                      - box-shadow: none
+                                      - display: flex
+                                      - align-items: center
+                                      - justify-content: center
+                                      - position: relative
+                                      - transition: all 0.3s ease
+                                    icon:
+                                      - color: white
+                                      - width: 30px
+                                      - transition: transform 0.3s ease
+                                  state:
+                                    - value: "on"
+                                      styles:
+                                        card:
+                                          - box-shadow: 0 0 8px 2px gold
+                                          - transform: scale(1.08)
+                                        icon:
+                                          - animation: micPulse 1.5s infinite ease-in-out
+                                  card_mod:
+                                    style: |
+                                      @keyframes micPulse {
+                                        0%   { transform: scale(1); }
+                                        50%  { transform: scale(1.2); }
+                                        100% { transform: scale(1); }
+                                      }
+                          - type: horizontal-stack
+                            cards:
+                              - type: custom:button-card
+                                name: 🎶 Jim Reeves
+                                tap_action:
+                                  action: call-service
+                                  service: input_text.set_value
+                                  data:
+                                    entity_id: input_text.music_request_query
+                                    value: Jim Reeves
+                                styles:
+                                  card:
+                                    - background: rgba(255, 255, 255, 0.08)
+                                    - backdrop-filter: blur(10px)
+                                    - border-radius: 16px
+                                    - padding: 8px 16px
+                                    - box-shadow: 0 0 6px rgba(0, 0, 0, 0.2)
+                                    - color: white
+                                    - font-weight: 500
+                                    - font-size: 14px
+                              - type: custom:button-card
+                                name: 🎶 George Ezra
+                                tap_action:
+                                  action: call-service
+                                  service: input_text.set_value
+                                  data:
+                                    entity_id: input_text.music_request_query
+                                    value: George Ezra
+                                styles:
+                                  card:
+                                    - background: rgba(255, 255, 255, 0.08)
+                                    - backdrop-filter: blur(10px)
+                                    - border-radius: 16px
+                                    - padding: 8px 16px
+                                    - box-shadow: 0 0 6px rgba(0, 0, 0, 0.2)
+                                    - color: white
+                                    - font-weight: 500
+                                    - font-size: 14px
+                              - type: custom:button-card
+                                tap_action:
+                                  action: call-service
+                                  service: input_text.set_value
+                                  data:
+                                    entity_id: input_text.music_request_query
+                                    value: >
+                                      [[[ return
+                                      states['input_text.last_music_request'].state
+                                      ]]]
+                                show_icon: false
+                                show_name: false
+                                styles:
+                                  card:
+                                    - background: rgba(255, 255, 255, 0.08)
+                                    - backdrop-filter: blur(10px)
+                                    - border-radius: 16px
+                                    - padding: 8px 16px
+                                    - box-shadow: 0 0 6px rgba(0, 0, 0, 0.2)
+                                    - color: white
+                                    - font-weight: 500
+                                    - font-size: 14px
+                                    - height: auto
+                                    - display: flex
+                                    - align-items: center
+                                    - justify-content: center
+                                    - overflow: hidden
+                                    - position: relative
+                                custom_fields:
+                                  content: |
+                                    [[[ 
+                                      const txt = states['input_text.last_music_request'].state;
+                                      const repeated = `${txt}     •     ${txt}     •     ${txt}`;
+                                      return `
+                                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                                                    font-weight: 900; font-size: 16px; color: rgba(255, 255, 255, 0.18);
+                                                    white-space: nowrap; pointer-events: none; z-index: 1;">
+                                          Last Requested
+                                        </div>
+                                        <div style="position: relative; z-index: 2; width: 100%; overflow: hidden;">
+                                          <div style="display: inline-block; padding-left: 100%; white-space: nowrap;
+                                                      animation: scroll-text 18s linear infinite;">
+                                            ${repeated}
+                                          </div>
+                                        </div>
+                                      `;
+                                    ]]]
+                                card_mod:
+                                  style: |
+                                    @keyframes scroll-text {
+                                      0%   { transform: translateX(0); }
+                                      100% { transform: translateX(-100%); }
+                                    }
+                          - type: custom:bubble-card
+                            card_type: select
+                            entity: input_select.music_target_speaker
+                            show_last_changed: false
+                            show_state: false
+                            name: Music to play on
+                            sub_button:
+                              - show_state: true
+                                show_icon: false
+                                show_arrow: false
+                                state_background: true
+                                show_background: false
+                          - type: custom:button-card
+                            name: 🎶 Play Now
+                            tap_action:
+                              action: call-service
+                              service: script.play_requested_music
+                            styles:
+                              card:
+                                - margin-top: 0px
+                                - padding: 12px
+                                - border: 1px solid rgba(255,255,255, 0.4)
+                                - border-radius: 30px
+                                - background: >-
+                                    linear-gradient(135deg,
+                                    rgba(255,255,255,0.6),
+                                    rgba(255,255,255,0.1))
+                                - backdrop-filter: blur(10px)
+                                - color: black
+                                - font-weight: bold
+                                - font-size: 18px
+                                - box-shadow: 0 4px 16px rgba(0,0,0,0.1)
+                                - text-align: center
+                                - transition: transform 0.2s ease-in-out
+                              name:
+                                - justify-self: center
+                              icon:
+                                - display: none
+                            card_mod:
+                              style: |
+                                @keyframes pressEffect {
+                                  0% { transform: scale(1); }
+                                  50% { transform: scale(0.93); }
+                                  100% { transform: scale(1); }
+                                }
+                                ha-card:active {
+                                  animation: pressEffect 0.3s ease forwards;
+                                }
+                          - type: conditional
+                            conditions:
+                              - condition: or
+                                conditions:
+                                  - condition: state
+                                    entity: media_player.study_echo
+                                    state: playing
+                                  - condition: state
+                                    entity: media_player.master_bedroom_echo
+                                    state: playing
+                                  - condition: state
+                                    entity: media_player.lounge_echo
+                                    state: playing
+                                  - condition: state
+                                    entity: media_player.kitchen_echo
+                                    state: playing
+                                  - condition: state
+                                    entity: media_player.hallway_echo
+                                    state: playing
+                                  - condition: state
+                                    entity: media_player.upstairs_echo
+                                    state: playing
+                                  - condition: state
+                                    entity: media_player.room_2_echo
+                                    state: playing
+                                  - condition: state
+                                    entity: media_player.room_3_echo
+                                    state: playing
+                                  - condition: state
+                                    entity: media_player.room_4_echo
+                                    state: playing
+                            card:
+                              type: custom:bubble-card
+                              card_type: button
+                              button_type: name
+                              icon: mdi:transfer
+                              name: |
+                                [[[ 
+                                  if (states['media_player.study_echo']?.state === 'playing') return "Transfer music from Study";
+                                  if (states['media_player.master_bedroom_echo']?.state === 'playing') return "Transfer music from Master Bedroom";
+                                  if (states['media_player.lounge_echo']?.state === 'playing') return "Transfer music from Lounge";
+                                  if (states['media_player.kitchen_echo']?.state === 'playing') return "Transfer music from Kitchen";
+                                  if (states['media_player.hallway_echo']?.state === 'playing') return "Transfer music from Hallway";
+                                  if (states['media_player.upstairs_echo']?.state === 'playing') return "Transfer music from Upstairs";
+                                  if (states['media_player.room_2_echo']?.state === 'playing') return "Transfer music from Room 2";
+                                  if (states['media_player.room_3_echo']?.state === 'playing') return "Transfer music from Room 3";
+                                  if (states['media_player.room_4_echo']?.state === 'playing') return "Transfer music from Room 4";
+                                  return "Transfer music from";
+                                ]]]
+                              sub_button:
+                                - entity: input_select.music_transfer_targets
+                                  name: To
+                                  show_state: true
+                                  show_icon: false
+                                  show_name: true
+                                  state_background: true
+                                  show_background: false
+                                - name: 🎵 Transfer
+                                  tap_action:
+                                    action: call-service
+                                    service: script.transfer_music_to_echo
+                                  show_icon: false
+                                  show_name: true
+                                  state_background: true
+                                  show_background: false
+                                  styles:
+                                    card:
+                                      - padding: 4px 12px
+                                      - font-size: 14px
+                                      - font-weight: bold
+                                      - background: >-
+                                          linear-gradient(135deg,
+                                          rgba(255,255,255,0.6),
+                                          rgba(255,255,255,0.1))
+                                      - color: black
+                                      - border-radius: 12px
+                                      - backdrop-filter: blur(8px)
+                                      - display: >
+                                          [[[ return
+                                          states['input_select.music_transfer_targets'].state
+                                          !== 'Select room' ? 'block' : 'none' ]]]
+                          - type: custom:mushroom-title-card
+                            title: All Devices
+                            alignment: center
+                            card_mod:
+                              style: |
+                                ha-card {
+                                  background: none;
+                                  font-size: 16px;
+                                  font-weight: 500;
+                                  color: white;
+                                  margin-top: 8px;
+                                  margin-bottom: -4px;
+                                }
+                          - type: grid
+                            columns: 1
+                            square: false
+                            cards:
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.hallway_echo
+                                hide:
+                                  power_button: true
+                                sub_button:
+                                  - icon: mdi:mirror-variant
+                                    state_background: true
+                                    show_background: false
+                                    tap_action:
+                                      action: none
+                                    show_name: false
+                                    show_icon: true
+                                    name: Hallway
+                                name: ""
+                                show_state: false
+                                show_name: false
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.lounge_echo
+                                hide:
+                                  power_button: true
+                                sub_button:
+                                  - icon: mdi:sofa
+                                    show_background: false
+                                    show_name: false
+                                    name: Lounge
+                                    tap_action:
+                                      action: none
+                                show_name: false
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.kitchen_echo
+                                hide:
+                                  power_button: true
+                                sub_button:
+                                  - icon: mdi:silverware-fork-knife
+                                    state_background: true
+                                    show_name: false
+                                    show_background: false
+                                    name: Kitchen
+                                    tap_action:
+                                      action: none
+                                show_name: false
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.upstairs_echo
+                                hide:
+                                  power_button: true
+                                sub_button:
+                                  - name: Upstairs
+                                    icon: mdi:stairs
+                                    state_background: true
+                                    show_background: false
+                                    tap_action:
+                                      action: none
+                                    double_tap_action:
+                                      action: none
+                                    hold_action:
+                                      action: none
+                                    show_name: false
+                                show_state: false
+                                show_name: false
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.master_bedroom_echo
+                                hide:
+                                  power_button: true
+                                show_name: false
+                                sub_button:
+                                  - tap_action:
+                                      action: none
+                                    show_name: false
+                                    show_background: false
+                                    icon: mdi:bed-king
+                                    name: Master Bed
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.room_2_echo
+                                hide:
+                                  power_button: true
+                                show_state: false
+                                show_name: false
+                                sub_button:
+                                  - show_background: false
+                                    show_name: true
+                                    name: 2
+                                    icon: mdi:bed
+                                    tap_action:
+                                      action: none
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.room_3_echo
+                                hide:
+                                  power_button: true
+                                show_name: true
+                                sub_button:
+                                  - icon: mdi:bed
+                                    show_background: false
+                                    show_name: true
+                                    tap_action:
+                                      action: none
+                                    name: 3
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.room_4_echo
+                                hide:
+                                  power_button: true
+                                show_state: false
+                                show_name: false
+                                sub_button:
+                                  - show_background: false
+                                    show_state: false
+                                    show_name: true
+                                    show_last_changed: false
+                                    icon: mdi:bed
+                                    name: 4
+                                    tap_action:
+                                      action: none
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.study_echo
+                                hide:
+                                  power_button: true
+                                sub_button:
+                                  - icon: mdi:desk
+                                    name: Study
+                                    show_background: false
+                                    show_name: false
+                                    tap_action:
+                                      action: none
+                                show_name: false
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.lg_webos_tv
+                                hide:
+                                  power_button: false
+                                icon: mdi:television-box
+                              - type: custom:bubble-card
+                                card_type: media-player
+                                entity: media_player.kitchen_tv
+                                hide:
+                                  power_button: false
+                                icon: mdi:television-box
+              styles:
+                card:
+                  - border-radius: 50%
+                  - width: 42px
+                  - height: 42px
+                  - background: >-
+                      linear-gradient(145deg, rgba(255,255,255,0.25),
+                      rgba(255,255,255,0.05))
+                  - box-shadow: >-
+                      0 4px 12px rgba(0,0,0,0.25), inset 0 1px 2px
+                      rgba(255,255,255,0.2)
+                  - display: flex
+                  - justify-content: center
+                  - align-items: center
+                  - transition: all 0.3s ease
+                icon:
+                  - color: white
+                  - width: 30px
+              card_mod:
+                style: |
+                  @keyframes tapPulse {
+                    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5); }
+                    70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+                  }
+                  ha-card:active {
+                    animation: tapPulse 0.4s ease-out;
+                  }
+          - type: custom:mod-card
+            style:
+              .: |
+                ha-card {
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  flex: 1;
+                  background: none;
+                  box-shadow: none;
+                }
+            card:
+              type: custom:button-card
+              icon: mdi:phone-in-talk
+              name: ""
+              tap_action:
+                action: fire-dom-event
+                browser_mod:
+                  service: browser_mod.popup
+                  data:
+                    title: 📞 Start a Drop-In
+                    size: normal
+                    style:
+                      .mdc-dialog__surface:
+                        border-radius: 24px
+                        background: none
+                        box-shadow: none
+                    content:
+                      type: custom:mod-card
+                      style:
+                        .: |
+                          ha-card {
+                            background: linear-gradient(135deg, #2563eb, #059669);
+                            border-radius: 24px;
+                            padding: 24px;
+                            box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+                            color: white;
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                          }
+                      card:
+                        type: vertical-stack
+                        cards:
+                          - type: custom:mod-card
+                            style:
+                              .: |
+                                ha-card {
+                                  background: rgba(255,255,255,0.12);
+                                  border-radius: 20px;
+                                  margin-top: 20px;
+                                  max-width: 600px;
+                                  margin-left: auto;
+                                  margin-right: auto;
+                                  padding: 12px 16px;
+                                  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                }
+                            card:
+                              type: horizontal-stack
+                              cards:
+                                - type: custom:mushroom-select-card
+                                  entity: input_select.intercom_source
+                                  name: Calling From
+                                  fill_container: true
+                                  secondary_info: none
+                                - type: custom:mushroom-select-card
+                                  entity: input_select.intercom_target
+                                  name: To
+                                  fill_container: true
+                                  secondary_info: none
+                          - type: custom:button-card
+                            name: 🤙 Drop in Now
+                            tap_action:
+                              action: call-service
+                              service: script.initiate_intercom
+                            styles:
+                              card:
+                                - margin-top: 0px
+                                - padding: 12px
+                                - border: 1px solid rgba(255,255,255, 0.4)
+                                - border-radius: 16px
+                                - background: >-
+                                    linear-gradient(135deg,
+                                    rgba(255,255,255,0.6),
+                                    rgba(255,255,255,0.1))
+                                - backdrop-filter: blur(10px)
+                                - color: black
+                                - font-weight: bold
+                                - font-size: 18px
+                                - box-shadow: 0 4px 16px rgba(0,0,0,0.1)
+                                - text-align: center
+                                - transition: transform 0.2s ease-in-out
+                              name:
+                                - justify-self: center
+                              icon:
+                                - display: none
+                            card_mod:
+                              style: |
+                                @keyframes pressEffect {
+                                  0% { transform: scale(1); }
+                                  50% { transform: scale(0.93); }
+                                  100% { transform: scale(1); }
+                                }
+                                ha-card:active {
+                                  animation: pressEffect 0.3s ease forwards;
+                                }
+              styles:
+                card:
+                  - border-radius: 50%
+                  - width: 42px
+                  - height: 42px
+                  - background: >-
+                      linear-gradient(145deg, rgba(255,255,255,0.25),
+                      rgba(255,255,255,0.05))
+                  - box-shadow: >-
+                      0 4px 12px rgba(0,0,0,0.25), inset 0 1px 2px
+                      rgba(255,255,255,0.2)
+                  - display: flex
+                  - justify-content: center
+                  - align-items: center
+                  - transition: all 0.3s ease
+                icon:
+                  - color: white
+                  - width: 28px
+              card_mod:
+                style: |
+                  @keyframes tapPulse {
+                    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5); }
+                    70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+                  }
+                  ha-card:active {
+                    animation: tapPulse 0.4s ease-out;
+                  }
+          - type: custom:mod-card
+            style:
+              .: |
+                ha-card {
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  flex: 1;
+                  background: none;
+                  box-shadow: none;
+                }
+            card:
+              type: custom:button-card
+              icon: mdi:clock-outline
+              name: ""
+              tap_action:
+                action: fire-dom-event
+                browser_mod:
+                  service: browser_mod.popup
+                  data:
+                    title: ⏰ Alarms / Timers / Reminders
+                    size: normal
+                    style:
+                      .mdc-dialog__surface:
+                        border-radius: 24px
+                        background: none
+                        box-shadow: none
+                    content:
+                      type: custom:mod-card
+                      style:
+                        .: |
+                          ha-card {
+                            background: linear-gradient(135deg, #4f46e5, #db2777);
+                            border-radius: 24px;
+                            padding: 24px;
+                            box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+                            color: white;
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                            max-height: 68vh;
+                            overflow-y: auto;
+                          }
+                      card:
+                        type: vertical-stack
+                        cards:
+                          - type: horizontal-stack
+                            cards:
+                              - type: custom:button-card
+                                name: Alarm
+                                show_icon: false
+                                tap_action:
+                                  action: call-service
+                                  service: input_select.select_option
+                                  data:
+                                    entity_id: input_select.alexa_popup_tab
+                                    option: Alarm
+                                entity: input_select.alexa_popup_tab
+                                state:
+                                  - value: Alarm
+                                    styles:
+                                      card:
+                                        - background: >-
+                                            linear-gradient(135deg,
+                                            rgba(255,198,8,0.9),
+                                            rgba(255,140,0,0.8))
+                                      name:
+                                        - color: black
+                                styles:
+                                  card:
+                                    - background: rgba(255,255,255,0.1)
+                                    - border-radius: 12px
+                                    - padding: 10px 16px
+                                    - margin-right: 8px
+                                    - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                  name:
+                                    - color: white
+                                    - font-weight: bold
+                                    - font-size: 16px
+                              - type: custom:button-card
+                                name: Timer
+                                show_icon: false
+                                tap_action:
+                                  action: call-service
+                                  service: input_select.select_option
+                                  data:
+                                    entity_id: input_select.alexa_popup_tab
+                                    option: Timer
+                                entity: input_select.alexa_popup_tab
+                                state:
+                                  - value: Timer
+                                    styles:
+                                      card:
+                                        - background: >-
+                                            linear-gradient(135deg,
+                                            rgba(255,198,8,0.9),
+                                            rgba(255,140,0,0.8))
+                                      name:
+                                        - color: black
+                                styles:
+                                  card:
+                                    - background-color: rgba(255,255,255,0.1)
+                                    - border-radius: 12px
+                                    - padding: 10px 16px
+                                    - margin-right: 8px
+                                    - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                  name:
+                                    - color: white
+                                    - font-weight: bold
+                                    - font-size: 16px
+                              - type: custom:button-card
+                                name: Reminder
+                                show_icon: false
+                                tap_action:
+                                  action: call-service
+                                  service: input_select.select_option
+                                  data:
+                                    entity_id: input_select.alexa_popup_tab
+                                    option: Reminder
+                                entity: input_select.alexa_popup_tab
+                                state:
+                                  - value: Reminder
+                                    styles:
+                                      card:
+                                        - background: >-
+                                            linear-gradient(135deg,
+                                            rgba(255,198,8,0.9),
+                                            rgba(255,140,0,0.8))
+                                      name:
+                                        - color: black
+                                styles:
+                                  card:
+                                    - background-color: rgba(255,255,255,0.1)
+                                    - border-radius: 12px
+                                    - padding: 10px 16px
+                                    - margin-right: 8px
+                                    - box-shadow: 0 2px 6px rgba(0,0,0,0.2)
+                                  name:
+                                    - color: white
+                                    - font-weight: bold
+                                    - font-size: 16px
+                          - type: conditional
+                            conditions:
+                              - entity: input_select.alexa_popup_tab
+                                state: Alarm
+                            card:
+                              type: custom:mod-card
+                              style:
+                                .: |
+                                  ha-card {
+                                    width: 100%;
+                                    max-width: 496px;
+                                    margin: 0 auto;
+                                    border-radius: 20px;
+                                    padding: 12px 16px;
+                                    background: rgba(255,255,255,0.12);
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                  }
+                              card:
+                                type: vertical-stack
+                                cards:
+                                  - type: custom:mushroom-select-card
+                                    entity: input_select.alexa_alarm_device
+                                    name: Alarm Echo Device
+                                    icon: mdi:alarm
+                                    layout: vertical
+                                    fill_container: true
+                                  - type: horizontal-stack
+                                    cards:
+                                      - type: custom:mushroom-select-card
+                                        entity: input_select.alarm_hour
+                                        name: Hour
+                                        icon: mdi:clock-outline
+                                        layout: vertical
+                                      - type: custom:mushroom-number-card
+                                        entity: input_number.alarm_minute
+                                        name: Minute
+                                        icon: mdi:clock-start
+                                        display_mode: slider
+                                        layout: vertical
+                                      - type: custom:mushroom-select-card
+                                        entity: input_select.alarm_period
+                                        name: AM/PM
+                                        icon: mdi:weather-night
+                                        layout: vertical
+                                  - type: custom:button-card
+                                    name: ⏰ Set Alarm
+                                    tap_action:
+                                      action: call-service
+                                      service: script.set_alexa_alarm
+                                    styles:
+                                      card:
+                                        - margin-top: 0px
+                                        - padding: 12px
+                                        - border: 1px solid rgba(255,255,255, 0.4)
+                                        - border-radius: 16px
+                                        - background: >
+                                            linear-gradient(135deg,
+                                            rgba(255,255,255,0.6),
+                                            rgba(255,255,255,0.1))
+                                        - backdrop-filter: blur(10px)
+                                        - color: black
+                                        - font-weight: bold
+                                        - font-size: 18px
+                                        - box-shadow: 0 4px 16px rgba(0,0,0,0.1)
+                                        - text-align: center
+                                        - transition: transform 0.2s ease-in-out
+                                      name:
+                                        - justify-self: center
+                                      icon:
+                                        - display: none
+                                    card_mod:
+                                      style: |
+                                        @keyframes pressEffect {
+                                          0% { transform: scale(1); }
+                                          50% { transform: scale(0.93); }
+                                          100% { transform: scale(1); }
+                                        }
+                                        ha-card:active {
+                                          animation: pressEffect 0.3s ease forwards;
+                                        }
+                          - type: conditional
+                            conditions:
+                              - entity: input_select.alexa_popup_tab
+                                state: Timer
+                            card:
+                              type: custom:mod-card
+                              style:
+                                .: |
+                                  ha-card {
+                                    width: 100%; max-width: 520px;
+                                    margin: 0 auto;
+                                    border-radius: 20px;
+                                    padding: 12px 16px;
+                                    background: rgba(255,255,255,0.12);
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                  }
+                              card:
+                                type: vertical-stack
+                                cards:
+                                  - type: custom:mushroom-select-card
+                                    entity: input_select.alexa_timer_device
+                                    name: Timer Echo Device
+                                    icon: mdi:timer
+                                    layout: vertical
+                                    fill_container: true
+                                  - type: horizontal-stack
+                                    cards:
+                                      - type: custom:mushroom-number-card
+                                        entity: input_number.alexa_timer_value
+                                        name: Duration
+                                        icon: mdi:clock-time-four-outline
+                                        display_mode: slider
+                                        layout: vertical
+                                        fill_container: true
+                                      - type: custom:mushroom-select-card
+                                        entity: input_select.alexa_timer_unit
+                                        name: Unit
+                                        icon: mdi:timer-outline
+                                        layout: vertical
+                                        fill_container: true
+                                  - type: custom:button-card
+                                    name: ⏱️ Set Timer
+                                    tap_action:
+                                      action: call-service
+                                      service: script.set_alexa_timer
+                                    styles:
+                                      card:
+                                        - margin-top: 0px
+                                        - padding: 12px
+                                        - border: 1px solid rgba(255,255,255, 0.4)
+                                        - border-radius: 16px
+                                        - background: >
+                                            linear-gradient(135deg,
+                                            rgba(255,255,255,0.6),
+                                            rgba(255,255,255,0.1))
+                                        - backdrop-filter: blur(10px)
+                                        - color: black
+                                        - font-weight: bold
+                                        - font-size: 18px
+                                        - box-shadow: 0 4px 16px rgba(0,0,0,0.1)
+                                        - text-align: center
+                                        - transition: transform 0.2s ease-in-out
+                                      name:
+                                        - justify-self: center
+                                      icon:
+                                        - display: none
+                                    card_mod:
+                                      style: |
+                                        @keyframes pressEffect {
+                                          0% { transform: scale(1); }
+                                          50% { transform: scale(0.93); }
+                                          100% { transform: scale(1); }
+                                        }
+                                        ha-card:active {
+                                          animation: pressEffect 0.3s ease forwards;
+                                        }
+                          - type: conditional
+                            conditions:
+                              - entity: input_select.alexa_popup_tab
+                                state: Reminder
+                            card:
+                              type: custom:mod-card
+                              style:
+                                .: |
+                                  ha-card {
+                                    width: 100%; max-width: 520px;
+                                    margin: 0 auto;
+                                    border-radius: 20px;
+                                    padding: 12px 16px;
+                                    background: rgba(255,255,255,0.12);
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                  }
+                              card:
+                                type: vertical-stack
+                                cards:
+                                  - type: custom:mushroom-select-card
+                                    entity: input_select.alexa_reminder_device
+                                    name: Reminder Echo Device
+                                    icon: mdi:bell-outline
+                                    layout: vertical
+                                    fill_container: true
+                                  - type: custom:mod-card
+                                    style: |
+                                      ha-card {
+                                        background: none;
+                                        padding: 0px;
+                                        box-shadow: none;
+                                      }
+                                      mwc-icon {
+                                        display: none !important;
+                                      }
+                                    card:
+                                      type: entities
+                                      entities:
+                                        - entity: input_text.alexa_reminder_text
+                                          name: What is the Reminder?
+                                          type: custom:text-input-row
+                                  - type: custom:button-card
+                                    name: 🔔 Set Reminder
+                                    tap_action:
+                                      action: call-service
+                                      service: script.set_alexa_reminder
+                                    styles:
+                                      card:
+                                        - margin-top: 0px
+                                        - padding: 12px
+                                        - border: 1px solid rgba(255,255,255, 0.4)
+                                        - border-radius: 16px
+                                        - background: >
+                                            linear-gradient(135deg,
+                                            rgba(255,255,255,0.6),
+                                            rgba(255,255,255,0.1))
+                                        - backdrop-filter: blur(10px)
+                                        - color: black
+                                        - font-weight: bold
+                                        - font-size: 18px
+                                        - box-shadow: 0 4px 16px rgba(0,0,0,0.1)
+                                        - text-align: center
+                                        - transition: transform 0.2s ease-in-out
+                                      name:
+                                        - justify-self: center
+                                      icon:
+                                        - display: none
+                                    card_mod:
+                                      style: |
+                                        @keyframes pressEffect {
+                                          0% { transform: scale(1); }
+                                          50% { transform: scale(0.93); }
+                                          100% { transform: scale(1); }
+                                        }
+                                        ha-card:active {
+                                          animation: pressEffect 0.3s ease forwards;
+                                        }
+              styles:
+                card:
+                  - border-radius: 50%
+                  - width: 42px
+                  - height: 42px
+                  - background: >-
+                      linear-gradient(145deg, rgba(255,255,255,0.25),
+                      rgba(255,255,255,0.05))
+                  - box-shadow: >-
+                      0 4px 12px rgba(0,0,0,0.25), inset 0 1px 2px
+                      rgba(255,255,255,0.2)
+                  - display: flex
+                  - justify-content: center
+                  - align-items: center
+                  - transition: all 0.3s ease
+                icon:
+                  - color: white
+                  - width: 28px
+              card_mod:
+                style: |
+                  @keyframes tapPulse {
+                    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5); }
+                    70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+                  }
+                  ha-card:active {
+                    animation: tapPulse 0.4s ease-out;
+                  }
+    - type: conditional
+      conditions:
+        - entity: sensor.active_echo_player
+          state_not: none
+      card:
+        type: custom:mod-card
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:button-card
+              name: |
+                [[[
+                  const tick = states['input_boolean.5_second_timer']?.state;
+
+                  let sensors = [
+                    'sensor.hallway_echo_next_reminder', 'sensor.hallway_echo_next_alarm', 'sensor.hallway_echo_next_timer',
+                    'sensor.kitchen_echo_next_reminder', 'sensor.kitchen_echo_next_alarm', 'sensor.kitchen_echo_next_timer',
+                    'sensor.lounge_echo_next_reminder', 'sensor.lounge_echo_next_alarm', 'sensor.lounge_echo_next_timer',
+                    'sensor.master_bedroom_echo_next_reminder', 'sensor.master_bedroom_echo_next_alarm', 'sensor.master_bedroom_echo_next_timer',
+                    'sensor.upstairs_echo_next_reminder', 'sensor.upstairs_echo_next_alarm', 'sensor.upstairs_echo_next_timer',
+                    'sensor.room_2_echo_next_reminder', 'sensor.room_2_echo_next_alarm', 'sensor.room_2_echo_next_timer',
+                    'sensor.room_3_echo_next_reminder', 'sensor.room_3_echo_next_alarm', 'sensor.room_3_echo_next_timer',
+                    'sensor.room_4_echo_next_reminder', 'sensor.room_4_echo_next_alarm', 'sensor.room_4_echo_next_timer',
+                    'sensor.study_echo_next_reminder', 'sensor.study_echo_next_alarm', 'sensor.study_echo_next_timer'
+                  ];
+
+                  let events = [];
+
+                  sensors.forEach(s => {
+                    let entity = states[s]?.state;
+                    if (!entity || entity === 'unknown' || entity === 'unavailable') return;
+                    let dt = new Date(entity);
+                    let now = new Date();
+                    if (dt <= now) return;
+
+                    let diff = Math.floor((dt - now) / 60000); // in minutes
+                    let hrs = Math.floor(diff / 60);
+                    let mins = diff % 60;
+                    
+                    let timeStr = '';
+                    if ((dt - now) >= 86400000) {
+                      timeStr = dt.toLocaleString(undefined, { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                    } else if (hrs >= 1) {
+                      timeStr = hrs + ' hr' + (mins > 0 ? ' ' + mins + ' min' : '');
+                    } else {
+                      timeStr = diff + ' min';
+                    }
+
+
+
+                    let type = s.includes('timer') ? 'timer' : s.includes('alarm') ? 'alarm' : 'reminder';
+                    let icon = type === 'timer' ? '🕒' : type === 'alarm' ? '⏰' : '🔔';
+                    let device = s.replace('sensor.', '').split('_echo_next_')[0].replaceAll('_', ' ');
+                    device = device.charAt(0).toUpperCase() + device.slice(1);
+
+                    let label = '';
+                    if (type === 'reminder') {
+                      label = states[s]?.attributes?.reminderLabel || states[s]?.attributes?.reminder || '';
+                    }
+
+                    let labelStr = label ? ': ' + label : '';
+                    events.push({ t: dt.getTime(), line: icon + ' <b>' + timeStr + '</b> – ' + device + ' ' + type.charAt(0).toUpperCase() + type.slice(1) + labelStr });
+                  });
+
+                  events.sort((a, b) => a.t - b.t);
+
+                  const newsTitle = states['event.top_stories_google_news']?.attributes?.title;
+                  const scrollLines = [];
+
+                  // Top News Section
+                  if (newsTitle) {
+                    scrollLines.push(`<div class="scroll-item label news">🚨 <b>Top News:</b></div>`);
+                    scrollLines.push(`<div class="scroll-item news-title">${newsTitle}</div>`);
+                  }
+
+                  // Spacer between Top News and Upcoming
+                  if (newsTitle && events.length > 0) {
+                    scrollLines.push(`<div class="scroll-item spacer"></div>`);
+                  }
+
+                  // Upcoming Label
+                  scrollLines.push(`<div class="scroll-item label upcoming">🗓️ <b>Upcoming:</b></div>`);
+
+                  if (events.length === 0) {
+                    scrollLines.push(`<div class="scroll-item">No upcoming alarms, timers, reminders.</div>`);
+                  } else {
+                    events.forEach(e => scrollLines.push(`<div class="scroll-item event">${e.line}</div>`));
+                  }
+
+                  const content = scrollLines.join('');
+                  return `<div class="scroll-area"><div class="scroll-track">${content + content + content}</div></div>`;
+                ]]]
+              tap_action:
+                action: url
+                url_path: >
+                  [[[ return
+                  states['event.top_stories_google_news']?.attributes?.link ||
+                  "#" ]]]
+              show_icon: false
+              show_state: false
+              styles:
+                card:
+                  - background: rgba(255,255,255,0.05)
+                  - border-radius: 1rem
+                  - padding: 0rem
+                  - height: 102px
+                  - overflow: hidden
+                  - color: white
+                  - font-size: 0.85rem
+                name:
+                  - white-space: normal
+                  - overflow: hidden
+                  - padding: 0
+                  - margin: 0
+                  - width: 90%
+                  - height: 100%
+                  - line-height: 1.4
+                  - text-align: left
+              card_mod:
+                style: |
+                  .scroll-area {
+                    height: 100%;
+                    overflow: hidden;
+                    position: relative;
+                  }
+                  .scroll-track {
+                    display: flex;
+                    flex-direction: column;
+                    animation: scroll-up 30s linear infinite;
+                  }
+                  .scroll-item {
+                    padding: 0.2rem 0;
+                  }
+                  .scroll-item.label.news {
+                    padding-top: 1rem;
+                    padding-bottom: 0rem;
+                  }
+                  .scroll-item.news-title {
+                    padding-top: 0.0rem;
+                    padding-bottom: 0.0rem;
+                    margin-left: 1rem;
+                  }
+                  .scroll-item.spacer {
+                    padding-top: 0rem;
+                  }
+                  .scroll-item.label.upcoming {
+                    padding-top: 1rem;
+                    padding-bottom: 0rem;
+                  }
+                  .scroll-item.event {
+                    padding-top: 0.2rem;
+                    padding-bottom: 0.0rem;
+                    margin-left: 1rem;
+                  }
+                  @keyframes scroll-up {
+                    0% {
+                      transform: translateY(0%);
+                    }
+                    100% {
+                      transform: translateY(-33.333%);
+                    }
+                  }
+    - type: conditional
+      conditions:
+        - entity: sensor.active_echo_player
+          state: none
+      card:
+        type: custom:mod-card
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:button-card
+              name: |
+                [[[
+                  const tick = states['input_boolean.5_second_timer']?.state;
+
+                  let sensors = [
+                    'sensor.hallway_echo_next_reminder', 'sensor.hallway_echo_next_alarm', 'sensor.hallway_echo_next_timer',
+                    'sensor.kitchen_echo_next_reminder', 'sensor.kitchen_echo_next_alarm', 'sensor.kitchen_echo_next_timer',
+                    'sensor.lounge_echo_next_reminder', 'sensor.lounge_echo_next_alarm', 'sensor.lounge_echo_next_timer',
+                    'sensor.master_bedroom_echo_next_reminder', 'sensor.master_bedroom_echo_next_alarm', 'sensor.master_bedroom_echo_next_timer',
+                    'sensor.upstairs_echo_next_reminder', 'sensor.upstairs_echo_next_alarm', 'sensor.upstairs_echo_next_timer',
+                    'sensor.room_2_echo_next_reminder', 'sensor.room_2_echo_next_alarm', 'sensor.room_2_echo_next_timer',
+                    'sensor.room_3_echo_next_reminder', 'sensor.room_3_echo_next_alarm', 'sensor.room_3_echo_next_timer',
+                    'sensor.room_4_echo_next_reminder', 'sensor.room_4_echo_next_alarm', 'sensor.room_4_echo_next_timer',
+                    'sensor.study_echo_next_reminder', 'sensor.study_echo_next_alarm', 'sensor.study_echo_next_timer'
+                  ];
+
+                  let events = [];
+
+                  sensors.forEach(s => {
+                    let entity = states[s]?.state;
+                    if (!entity || entity === 'unknown' || entity === 'unavailable') return;
+                    let dt = new Date(entity);
+                    let now = new Date();
+                    if (dt <= now) return;
+
+                    let diff = Math.floor((dt - now) / 60000); // in minutes
+                    let hrs = Math.floor(diff / 60);
+                    let mins = diff % 60;
+                    
+                    let timeStr = '';
+                    if ((dt - now) >= 86400000) {
+                      timeStr = dt.toLocaleString(undefined, { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                    } else if (hrs >= 1) {
+                      timeStr = hrs + ' hr' + (mins > 0 ? ' ' + mins + ' min' : '');
+                    } else {
+                      timeStr = diff + ' min';
+                    }
+
+
+
+                    let type = s.includes('timer') ? 'timer' : s.includes('alarm') ? 'alarm' : 'reminder';
+                    let icon = type === 'timer' ? '🕒' : type === 'alarm' ? '⏰' : '🔔';
+                    let device = s.replace('sensor.', '').split('_echo_next_')[0].replaceAll('_', ' ');
+                    device = device.charAt(0).toUpperCase() + device.slice(1);
+
+                    let label = '';
+                    if (type === 'reminder') {
+                      label = states[s]?.attributes?.reminderLabel || states[s]?.attributes?.reminder || '';
+                    }
+
+                    let labelStr = label ? ': ' + label : '';
+                    events.push({ t: dt.getTime(), line: icon + ' <b>' + timeStr + '</b> – ' + device + ' ' + type.charAt(0).toUpperCase() + type.slice(1) + labelStr });
+                  });
+
+                  events.sort((a, b) => a.t - b.t);
+
+                  const newsTitle = states['event.top_stories_google_news']?.attributes?.title;
+                  const scrollLines = [];
+
+                  // Top News Section
+                  if (newsTitle) {
+                    scrollLines.push(`<div class="scroll-item label news">🚨 <b>Top News:</b></div>`);
+                    scrollLines.push(`<div class="scroll-item news-title">${newsTitle}</div>`);
+                  }
+
+                  // Spacer between Top News and Upcoming
+                  if (newsTitle && events.length > 0) {
+                    scrollLines.push(`<div class="scroll-item spacer"></div>`);
+                  }
+
+                  // Upcoming Label
+                  scrollLines.push(`<div class="scroll-item label upcoming">🗓️ <b>Upcoming:</b></div>`);
+
+                  if (events.length === 0) {
+                    scrollLines.push(`<div class="scroll-item">No upcoming alarms, timers, reminders.</div>`);
+                  } else {
+                    events.forEach(e => scrollLines.push(`<div class="scroll-item event">${e.line}</div>`));
+                  }
+
+                  const content = scrollLines.join('');
+                  return `<div class="scroll-area"><div class="scroll-track">${content + content + content}</div></div>`;
+                ]]]
+              tap_action:
+                action: url
+                url_path: >
+                  [[[ return
+                  states['event.top_stories_google_news']?.attributes?.link ||
+                  "#" ]]]
+              show_icon: false
+              show_state: false
+              styles:
+                card:
+                  - background: rgba(255,255,255,0.05)
+                  - border-radius: 1rem
+                  - padding: 0rem
+                  - height: 166px
+                  - overflow: hidden
+                  - color: white
+                  - font-size: 0.85rem
+                name:
+                  - white-space: normal
+                  - overflow: hidden
+                  - padding: 0
+                  - margin: 0
+                  - width: 90%
+                  - height: 100%
+                  - line-height: 1.4
+                  - text-align: left
+              card_mod:
+                style: |
+                  .scroll-area {
+                    height: 100%;
+                    overflow: hidden;
+                    position: relative;
+                  }
+                  .scroll-track {
+                    display: flex;
+                    flex-direction: column;
+                    animation: scroll-up 30s linear infinite;
+                  }
+                  .scroll-item {
+                    padding: 0.2rem 0;
+                  }
+                  .scroll-item.label.news {
+                    padding-top: 1rem;
+                    padding-bottom: 0rem;
+                  }
+                  .scroll-item.news-title {
+                    padding-top: 0.0rem;
+                    padding-bottom: 0.0rem;
+                    margin-left: 1rem;
+                  }
+                  .scroll-item.spacer {
+                    padding-top: 0rem;
+                  }
+                  .scroll-item.label.upcoming {
+                    padding-top: 1rem;
+                    padding-bottom: 0rem;
+                  }
+                  .scroll-item.event {
+                    padding-top: 0.2rem;
+                    padding-bottom: 0.0rem;
+                    margin-left: 1rem;
+                  }
+                  @keyframes scroll-up {
+                    0% {
+                      transform: translateY(0%);
+                    }
+                    100% {
+                      transform: translateY(-33.333%);
+                    }
+                  }

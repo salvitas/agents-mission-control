@@ -1,0 +1,460 @@
+## Location Card – Household Presence, Travel Progress & Security
+#
+# This file defines a glassmorphic Location & Security strip for the main dashboard:
+#
+# - Person 1 location tile:
+#     - Shows travel progress toward home OR phone battery level
+#     - Displays ETA text ("Reaching home in X") when away and ETA is known
+#     - Shows current place (Home / Work / Away / zone.*) and last updated time
+#     - Uses a circular avatar image and a left-to-right gradient fill bar
+#
+# - Person 2 location tile:
+#     - Same behaviour as Person 1: travel progress vs battery, ETA, place label
+#     - Independent sensors and helpers for progress and ETA
+#
+# - Security + front door:
+#     - Mushroom alarm control panel for alarm_control_panel.alarmo
+#     - Mushroom lock card for the front door lock
+#
+# ——————————————————————————————————————————
+# REQUIRED ENTITIES
+# ——————————————————————————————————————————
+#
+# Person 1
+#   Person / Location:
+#     - person.person_1
+#   Travel / ETA:
+#     - sensor.home_travel_progress_person_1
+#     - input_text.person_1_eta
+#   Battery:
+#     - sensor.person_1_phone_battery_level
+#     - sensor.person_1_phone_battery_state
+#   Timer / refresh helper:
+#     - input_boolean.person_1_refresh_timer
+#   Avatar image (frontend only):
+#     - /local/person_1.png
+#
+# Person 2
+#   Person / Location:
+#     - person.person_2
+#   Travel / ETA:
+#     - sensor.home_travel_progress_person_2
+#     - input_text.person_2_eta
+#   Battery:
+#     - sensor.person_2_phone_battery_level
+#     - sensor.person_2_phone_battery_state
+#   Avatar image (frontend only):
+#     - /local/person_2.png
+#
+# Security & Lock
+#   Alarm:
+#     - alarm_control_panel.alarmo
+#   Front door:
+#     - lock.front_door_lock_ultra
+#
+# ——————————————————————————————————————————
+# DEPENDENCIES
+# ——————————————————————————————————————————
+#
+#   Custom cards:
+#     - custom:mod-card
+#     - custom:button-card
+#     - custom:mushroom-alarm-control-panel-card
+#     - custom:mushroom-lock-card
+#     - card-mod (used via mod-card / card_mod styling)
+
+type: custom:mod-card
+style:
+  .: |
+    ha-card {
+      width: 100%;
+      max-width: 620px;
+      margin: 0 auto;
+      padding-top: 8px;
+      padding-bottom: 4px;
+      padding-left: 2px;
+      padding-right: 2px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(151, 87, 167, 0.25), rgba(75, 124, 132, 0.25));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(30px);
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.25),
+        inset 0 0 8px rgba(255, 255, 255, 0.03);
+      border: 1.2px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.3s ease;
+    }
+card:
+  type: vertical-stack
+  cards:
+    - type: custom:mod-card
+      style:
+        .: |
+          ha-card {
+            max-width: 596px;
+            margin: 0 auto;
+            padding-left: 6px;
+            padding-right: 6px;
+            background: none;
+            box-shadow: none;
+          }
+      card:
+        type: horizontal-stack
+        cards:
+
+########## PERSON 1 ##########
+
+          - type: custom:button-card
+            entity: person.person_1
+            triggers_update:
+              - input_boolean.person_1_refresh_timer
+              - sensor.home_travel_progress_person_1
+              - sensor.person_1_phone_battery_level
+              - sensor.person_1_phone_battery_state
+              - input_text.person_1_eta
+            variables:
+              progress: |
+                [[[
+                  const state = states['person.person_1'].state;
+                  const battery = parseFloat(states['sensor.person_1_phone_battery_level']?.state || 0);
+                  const travel = Number(states['sensor.home_travel_progress_person_1']?.state || 0);
+
+                  const lastChanged = new Date(states['person.person_1'].last_changed);
+                  const now = new Date();
+                  const minutesSinceHome = Math.floor((now - lastChanged) / 60000);
+
+                  const isHome = state === 'home';
+                  const useProgress = !isHome || (travel === 100 && minutesSinceHome < 2);
+
+                  return useProgress ? travel : battery;
+                ]]]
+            show_icon: false
+            show_name: false
+            tap_action:
+              action: more-info
+            styles:
+              card:
+                - height: 60px
+                - border-radius: 16px
+                - padding: 0px
+                - overflow: hidden
+                - position: relative
+                - background-image: |
+                    [[[
+                      const opaqueGradient = 'linear-gradient(to right, #b494f1, #347bbd)';
+                      const semiTransparentGradient = 'linear-gradient(to right, rgba(180,148,241,0.3), rgba(52,123,189,0.3))';
+                      return `${opaqueGradient}, ${semiTransparentGradient}`;
+                    ]]]
+                - background-size: |
+                    [[[
+                      const p = Math.max(0, Math.min(100, Number(variables.progress) || 0));
+                      return `${p}% 100%, 100% 100%`;
+                    ]]]
+                - background-repeat: no-repeat
+                - background-position: left
+                - transition: background-size 0.8s ease
+              grid:
+                - grid-template-areas: "\"avatar info\""
+                - grid-template-columns: auto 1fr
+                - align-items: center
+                - padding: 2px 10px 1px 5px
+            custom_fields:
+              avatar: |
+                <div style="
+                  height: 48.4px;
+                  width: 48.4px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #ede6f2, #bdbfbf);
+                  padding: 1.1px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                ">
+                <div style="
+                  height: 48.2px;
+                  width: 48.2px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #dff1f5, #dfb9fa);
+                  padding: 1.1px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                ">
+                <div style="
+                  height: 48px;
+                  width: 48px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #daf5f2, #05c5fa);
+                  padding: 1.2px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                ">
+                  <img src="/local/person_1.png" style="
+                    height: 48px;
+                    width: 48px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    background: linear-gradient(135deg, #6651e0, #857eab);
+                  ">
+                </div>
+              info: |
+                [[[ 
+                  const person = states['person.person_1'];
+                  const state = person.state;
+
+                  const eta = states['input_text.person_1_eta']?.state;
+                  const battery = states['sensor.person_1_phone_battery_level']?.state;
+                  const lastChanged = new Date(person.last_changed);
+                  const now = new Date();
+                  const diffMs = now - lastChanged;
+
+                  const minutesAtHome = Math.floor(diffMs / 60000);
+                  const progress = variables.progress;
+
+                  const showETA = state !== 'home' && eta && eta !== 'unknown' && eta !== 'Calculating...' && progress > 0;
+                  const showBattery = state === 'home' && battery && minutesAtHome >= 2;
+
+                  const placeLabel = (() => {
+                    if (state === 'home') return 'Home';
+                    if (state === 'Work') return 'Work';
+                    if (state === 'not_home' || state === 'unknown' || state === 'away') return 'Away';
+                    const z = hass.states[`zone.${state}`];
+                    return z?.attributes?.friendly_name || state.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  })();
+
+                  let updatedAgo = '';
+                  if (!showETA && person.last_changed) {
+                    const diffHrs = Math.floor(diffMs / 1000 / 60 / 60);
+                    const diffMins = Math.floor(diffMs / 1000 / 60) % 60;
+                    if (diffHrs >= 1) updatedAgo = ` • ${diffHrs} hour${diffHrs > 1 ? 's' : ''} ago`;
+                    else if (diffMins > 0) updatedAgo = ` • ${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+                  }
+
+                  const subtitle = showETA
+                    ? `Reaching home in ${eta}`
+                    : `${placeLabel}${updatedAgo}`;
+
+                  const batteryInfo = showBattery ? ` ⚡️ ${battery}%` : '';
+
+                  return `
+                    <div style="margin-left: 6px; text-align: left;">
+                      <div style="font-weight: 800; font-size: 14px; color: white;">
+                        Person 1${batteryInfo}
+                      </div>
+                      <div style="
+                        font-weight: 400;
+                        font-size: 11px;
+                        color: white;
+                        position: relative;
+                        overflow: hidden;
+                        height: 18px;
+                        width: 100%;
+                      ">
+                        <div style="
+                          position: absolute;
+                          white-space: nowrap;
+                          animation: scroll-left 10s linear infinite;
+                        ">
+                          ${subtitle}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                ]]]
+              progress_watcher: |
+                [[[ return `<div style="display:none;">${variables.progress}</div>`; ]]]
+            extra_styles: |
+              @keyframes scroll-left {
+                0% { transform: translateX(160%); }
+                100% { transform: translateX(-100%); }
+              }
+
+########## PERSON 2 ##########
+
+          - type: custom:button-card
+            entity: person.person_2
+            triggers_update:
+              - sensor.home_travel_progress_person_2
+              - sensor.person_2_phone_battery_level
+              - sensor.person_2_phone_battery_state
+              - input_text.person_2_eta
+            variables:
+              progress: |
+                [[[
+                  const state = states['person.person_2'].state;
+                  const battery = parseFloat(states['sensor.person_2_phone_battery_level']?.state || 0);
+                  const travel = parseFloat(states['sensor.home_travel_progress_person_2']?.state || 0);
+
+                  const lastChanged = new Date(states['person.person_2'].last_changed);
+                  const now = new Date();
+                  const minutesSinceHome = Math.floor((now - lastChanged) / 60000);
+
+                  const isHome = state === 'home';
+                  const useProgress = !isHome || (travel === 100 && minutesSinceHome < 2);
+
+                  return useProgress ? travel : battery;
+                ]]]
+            show_icon: false
+            show_name: false
+            tap_action:
+              action: more-info
+            styles:
+              card:
+                - height: 60px
+                - border-radius: 16px
+                - padding: 0px
+                - overflow: hidden
+                - position: relative
+                - background-image: |
+                    [[[
+                      const opaqueGradient = 'linear-gradient(to right, #f998dd, #be3d74)';
+                      const semiTransparentGradient = 'linear-gradient(to right, rgba(249,152,221,0.3), rgba(190,61,116,0.3))';
+                      return `${opaqueGradient}, ${semiTransparentGradient}`;
+                    ]]]
+                - background-size: |
+                    [[[
+                      const p = Math.max(0, Math.min(100, Number(variables.progress) || 0));
+                      return `${p}% 100%, 100% 100%`;
+                    ]]]
+                - background-repeat: no-repeat
+                - background-position: left
+                - transition: background-size 0.8s ease
+              grid:
+                - grid-template-areas: "\"avatar info\""
+                - grid-template-columns: auto 1fr
+                - align-items: center
+                - padding: 2px 10px 1px 5px
+            custom_fields:
+              avatar: |
+                <div style="
+                  height: 48.2px;
+                  width: 48.2px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #fcedf9, #878386);
+                  padding: 1.2px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                ">
+                <div style="
+                  height: 48px;
+                  width: 48px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #ffe6f3, #fa0789);
+                  padding: 1.2px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                ">
+                  <img src="/local/person_2.png" style="
+                    height: 48px;
+                    width: 48px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    background: linear-gradient(135deg, #f78fdf, #af3a84);
+                  ">
+                </div>
+              info: |
+                [[[ 
+                  const person = states['person.person_2'];
+                  const state = person.state;
+
+                  const eta = states['input_text.person_2_eta']?.state;
+                  const battery = states['sensor.person_2_phone_battery_level']?.state;
+                  const lastChanged = new Date(person.last_changed);
+                  const now = new Date();
+                  const diffMs = now - lastChanged;
+
+                  const minutesAtHome = Math.floor(diffMs / 60000);
+                  const progress = variables.progress;
+
+                  const showETA = state !== 'home' && eta && eta !== 'unknown' && eta !== 'Calculating...' && progress > 0;
+                  const showBattery = state === 'home' && battery && minutesAtHome >= 2;
+
+                  const placeLabel = (() => {
+                    if (state === 'home') return 'Home';
+                    if (state === 'Work') return 'Work';
+                    if (state === 'not_home' || state === 'unknown' || state === 'away') return 'Away';
+                    const z = hass.states[`zone.${state}`];
+                    return z?.attributes?.friendly_name || state.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  })();
+
+                  let updatedAgo = '';
+                  if (!showETA && person.last_changed) {
+                    const diffHrs = Math.floor(diffMs / 1000 / 60 / 60);
+                    const diffMins = Math.floor(diffMs / 1000 / 60) % 60;
+                    if (diffHrs >= 1) updatedAgo = ` • ${diffHrs} hour${diffHrs > 1 ? 's' : ''} ago`;
+                    else if (diffMins > 0) updatedAgo = ` • ${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+                  }
+
+                  const subtitle = showETA
+                    ? `Reaching home in ${eta}`
+                    : `${placeLabel}${updatedAgo}`;
+
+                  const batteryInfo = showBattery ? ` ⚡️ ${battery}%` : '';
+
+                  return `
+                    <div style="margin-left: 6px; text-align: left;">
+                      <div style="font-weight: 800; font-size: 14px; color: white;">
+                        Person 2${batteryInfo}
+                      </div>
+                      <div style="
+                        font-weight: 400;
+                        font-size: 11px;
+                        color: white;
+                        position: relative;
+                        overflow: hidden;
+                        height: 18px;
+                        width: 100%;
+                      ">
+                        <div style="
+                          position: absolute;
+                          white-space: nowrap;
+                          animation: scroll-left 10s linear infinite;
+                        ">
+                          ${subtitle}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                ]]]
+              progress_watcher: |
+                [[[ return `<div style="display:none;">${variables.progress}</div>`; ]]]
+            extra_styles: |
+              @keyframes scroll-left {
+                0% { transform: translateX(160%); }
+                100% { transform: translateX(-100%); }
+              }
+
+########## SECURITY ##########
+
+    - type: custom:mushroom-alarm-control-panel-card
+      entity: alarm_control_panel.alarmo
+      states:
+        - armed_home
+        - armed_away
+      name: Home Security
+      fill_container: false
+      layout: horizontal
+      card_mod:
+        style: |
+          ha-card {
+            background: none !important;
+            box-shadow: none !important;
+            padding: 0;
+      grid_options:
+        columns: 12
+        rows: 1
+
+    - type: custom:mushroom-lock-card
+      entity: lock.front_door_lock_ultra
+      name: Front Door Lock
+      layout: horizontal
+      card_mod:
+        style: |
+          ha-card {
+            background: none !important;
+            box-shadow: none !important;
+            margin-top: -10px !important;
+            padding: 0;

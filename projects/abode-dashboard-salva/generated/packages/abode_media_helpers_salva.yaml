@@ -1,0 +1,212 @@
+# Generated for Salva HA (2026-03-01)
+# Purpose: provide required entities/scripts for Media Centre card adapted to HomePod devices.
+
+template:
+  - trigger:
+      - platform: state
+        entity_id:
+          - media_player.homepod
+          - media_player.homepod_mini
+    sensor:
+      - name: active_echo_player
+        unique_id: active_echo_player
+        state: >
+          {% set players = ['media_player.homepod','media_player.homepod_mini'] %}
+          {% set playing = players | select('is_state','playing') | list %}
+          {% set paused = players | select('is_state','paused') | list %}
+          {% if playing|length > 0 %}
+            {{ playing[0] }}
+          {% elif paused|length > 0 %}
+            {{ paused[0] }}
+          {% else %}
+            media_player.homepod
+          {% endif %}
+
+input_text:
+  announcement_message:
+    name: Announcement Message
+    max: 255
+  music_request_query:
+    name: Music Request Query
+    max: 255
+  last_music_request:
+    name: Last Music Request
+    max: 255
+  alexa_reminder_text:
+    name: Reminder Text
+    max: 255
+
+input_boolean:
+  mic_recording:
+    name: Mic Recording
+  echo_hallway:
+    name: HomePod A selected
+  echo_kitchen:
+    name: HomePod B selected
+  echo_lounge:
+    name: HomePod A selected 2
+  echo_master_bedroom:
+    name: HomePod B selected 2
+  echo_upstairs:
+    name: HomePod A selected 3
+  echo_room_2:
+    name: HomePod B selected 3
+  echo_room_3:
+    name: HomePod A selected 4
+  echo_room_4:
+    name: HomePod B selected 4
+  echo_study:
+    name: HomePod A selected 5
+  all_echoes:
+    name: All speakers
+  5_second_timer:
+    name: 5 Second Refresh Timer
+
+input_select:
+  music_target_speaker:
+    name: Music Target Speaker
+    options:
+      - HomePod
+      - HomePod Mini
+  music_transfer_targets:
+    name: Music Transfer Target
+    options:
+      - HomePod
+      - HomePod Mini
+  intercom_source:
+    name: Intercom Source
+    options:
+      - HomePod
+      - HomePod Mini
+  intercom_target:
+    name: Intercom Target
+    options:
+      - HomePod
+      - HomePod Mini
+  alexa_popup_tab:
+    name: Alexa Popup Tab
+    options:
+      - Alarm
+      - Timer
+      - Reminder
+  alexa_alarm_device:
+    name: Alarm Device
+    options:
+      - HomePod
+      - HomePod Mini
+  alarm_hour:
+    name: Alarm Hour
+    options:
+      - "06"
+      - "07"
+      - "08"
+      - "09"
+      - "10"
+  alarm_period:
+    name: Alarm Period
+    options:
+      - AM
+      - PM
+  alexa_timer_device:
+    name: Timer Device
+    options:
+      - HomePod
+      - HomePod Mini
+  alexa_timer_unit:
+    name: Timer Unit
+    options:
+      - minutes
+      - hours
+  alexa_reminder_device:
+    name: Reminder Device
+    options:
+      - HomePod
+      - HomePod Mini
+
+input_number:
+  alarm_minute:
+    name: Alarm Minute
+    min: 0
+    max: 59
+    step: 1
+  alexa_timer_value:
+    name: Timer Value
+    min: 1
+    max: 240
+    step: 1
+
+script:
+  make_an_announcement:
+    alias: Make an Announcement
+    sequence:
+      - service: media_player.play_media
+        target:
+          entity_id: media_player.homepod
+        data:
+          media_content_type: music
+          media_content_id: "{{ states('input_text.announcement_message') }}"
+
+  play_requested_music:
+    alias: Play Requested Music
+    sequence:
+      - service: media_player.play_media
+        target:
+          entity_id: >
+            {% if states('input_select.music_target_speaker') == 'HomePod Mini' %}
+              media_player.homepod_mini
+            {% else %}
+              media_player.homepod
+            {% endif %}
+        data:
+          media_content_type: music
+          media_content_id: "{{ states('input_text.music_request_query') }}"
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.last_music_request
+        data:
+          value: "{{ states('input_text.music_request_query') }}"
+
+  transfer_music_to_echo:
+    alias: Transfer Music to Speaker
+    sequence:
+      - service: media_player.media_pause
+        target:
+          entity_id:
+            - media_player.homepod
+            - media_player.homepod_mini
+
+  initiate_intercom:
+    alias: Initiate Intercom
+    sequence:
+      - service: persistent_notification.create
+        data:
+          title: Intercom
+          message: >
+            Intercom requested from {{ states('input_select.intercom_source') }} to {{ states('input_select.intercom_target') }}.
+
+  set_alexa_alarm:
+    alias: Set Alarm
+    sequence:
+      - service: persistent_notification.create
+        data:
+          title: Alarm Request
+          message: >
+            Alarm set request for {{ states('input_select.alexa_alarm_device') }} at {{ states('input_select.alarm_hour') }}:{{ '%02d'|format(states('input_number.alarm_minute')|int) }} {{ states('input_select.alarm_period') }}.
+
+  set_alexa_timer:
+    alias: Set Timer
+    sequence:
+      - service: persistent_notification.create
+        data:
+          title: Timer Request
+          message: >
+            Timer set request for {{ states('input_select.alexa_timer_device') }}: {{ states('input_number.alexa_timer_value')|int }} {{ states('input_select.alexa_timer_unit') }}.
+
+  set_alexa_reminder:
+    alias: Set Reminder
+    sequence:
+      - service: persistent_notification.create
+        data:
+          title: Reminder Request
+          message: >
+            Reminder set for {{ states('input_select.alexa_reminder_device') }}: {{ states('input_text.alexa_reminder_text') }}
