@@ -43,3 +43,41 @@ Docker build fails on Apple Silicon due to platform mismatch
 
 ---
 
+
+## [LRN-20260303-001] best_practice
+
+**Logged**: 2026-03-03T22:36:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: config
+
+### Summary
+For `wacli`, sending via raw phone (`+65...`) can fail with user-info/LID lookup timeout; sending via known chat JID works reliably.
+
+### Details
+Observed repeated error during WhatsApp send:
+`failed to get user info for +6589490107@s.whatsapp.net to fill LID cache: failed to send usync query: info query timed out`
+
+Also hit lock contention when `wacli sync --follow` was running (`store is locked`).
+
+Successful path:
+1. Resolve contact JID from local store (`wacli chats list --query "89490107" --json`)
+2. Send using JID directly: `wacli send text --to "6589490107@s.whatsapp.net" --message "..."`
+
+### Suggested Action
+When `wacli` send by phone number fails with LID/usync timeout, switch to direct JID send from local chat index.
+
+### Metadata
+- Source: error
+- Related Files: .learnings/LEARNINGS.md
+- Tags: wacli, whatsapp, timeout, jid, reliability
+- Pattern-Key: wacli.send.use-jid-on-usync-timeout
+- Recurrence-Count: 1
+- First-Seen: 2026-03-03
+- Last-Seen: 2026-03-03
+
+### Resolution
+- **Resolved**: 2026-03-03T22:36:00+08:00
+- **Notes**: Message delivery succeeded after switching from `+65...` target to exact `@s.whatsapp.net` JID.
+
+---
