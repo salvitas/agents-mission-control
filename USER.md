@@ -18,6 +18,7 @@ _Learn about the person you're helping. Update this as you go._
 - **Git workflow:** Always commit when any workspace file is changed
 - **Env vars workflow:** Always add requested env vars to `~/.zshrc`
 - **OpenClaw config workflow:** Before changing `openclaw.json`, always check latest docs + schema validation first
+- **Email client workflow:** Prefer AgentMail (`salva@agentmail.to`) as default for email communication
 
 ## Context
 
