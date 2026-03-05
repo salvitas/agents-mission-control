@@ -19,6 +19,16 @@
       "env": {
         "PHANTOM_APP_ID": "${PHANTOM_APP_ID}"
       }
+    },
+    "singapore-transport": {
+      "command": "python3",
+      "args": [
+        "/Users/salva/.openclaw/workspace/projects/mcp-lta-datamall/server.py"
+      ],
+      "env": {
+        "LTA_DATAMALL_API_KEY": "${LTA_DATAMALL_API_KEY}",
+        "TRANSIT_STATE_PATH": "/Users/salva/.openclaw/workspace/tmp/singapore-transport/monitors.json"
+      }
     }
   },
   "imports": []
