@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import os
+import uuid
 from typing import Any
 
 from datetime import datetime
@@ -11,6 +12,8 @@ from src.infrastructure.datamall_client import DataMallClient
 from src.application.normalize import normalize_bus_arrival, normalize_bus_route
 from src.application.geo import parse_latlon, nearest_stop_by_coords, nearest_stop_by_text
 from src.application.leave_time import compute_leave_plan
+from src.infrastructure.state_store import StateStore
+from src.domain.monitor import MonitorConfig
 
 
 @dataclass
@@ -76,6 +79,43 @@ def leave_time(origin: str, destination: str, service_no: str | None = None) -> 
             "eta_snapshot": first,
         },
     )
+
+
+def _store() -> StateStore:
+    path = os.getenv("TRANSIT_STATE_PATH", os.path.expanduser("~/.openclaw/workspace/tmp/singapore-transport/monitors.json"))
+    return StateStore(path)
+
+
+def monitor_create(origin: str, destination: str, service_no: str | None = None, channels: list[str] | None = None) -> ToolResult:
+    cfg = MonitorConfig(
+        id=str(uuid.uuid4()),
+        origin=origin,
+        destination=destination,
+        service_no=service_no,
+        channels=(channels or ["telegram"]),
+    )
+    _store().upsert_monitor(cfg)
+    return ToolResult(ok=True, data={"id": cfg.id, "origin": origin, "destination": destination})
+
+
+def monitor_list() -> ToolResult:
+    mons = [asdict(m) for m in _store().list_monitors()]
+    return ToolResult(ok=True, data={"count": len(mons), "monitors": mons})
+
+
+def monitor_pause(monitor_id: str) -> ToolResult:
+    _store().set_enabled(monitor_id, False)
+    return ToolResult(ok=True, data={"id": monitor_id, "enabled": False})
+
+
+def monitor_resume(monitor_id: str) -> ToolResult:
+    _store().set_enabled(monitor_id, True)
+    return ToolResult(ok=True, data={"id": monitor_id, "enabled": True})
+
+
+def monitor_delete(monitor_id: str) -> ToolResult:
+    _store().delete_monitor(monitor_id)
+    return ToolResult(ok=True, data={"id": monitor_id, "deleted": True})
 
 
 def to_dict(result: ToolResult) -> dict[str, Any]:
