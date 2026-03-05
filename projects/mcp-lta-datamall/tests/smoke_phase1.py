@@ -24,11 +24,19 @@ def main() -> int:
     print("bus_route ok:", route.ok)
     print("rows:", route.data.get("count"))
 
+    near = tools.nearest_stop("Tampines MRT")
+    print("nearest_stop ok:", near.ok, near.data.get("bus_stop_code"))
+
+    leave = tools.leave_time(origin="home", destination="Tampines MRT", service_no="15")
+    print("leave_time ok:", leave.ok)
+
     print("sample:")
     print(json.dumps({
         "arrival_first": eta.data.get("services", [])[:1],
         "route_first": route.data.get("routes", [])[:1],
-    }, indent=2)[:1200])
+        "nearest": near.data,
+        "leave": leave.data.get("plan", {}),
+    }, indent=2)[:1800])
     return 0
 
 
