@@ -63,9 +63,22 @@ class DataMallClient:
         return self._get("v3/BusArrival", params)
 
     def bus_route(self, service_no: str, direction: int | None = None) -> dict[str, Any]:
-        # BusRoutes supports $filter on ServiceNo (+ optional Direction)
-        filt = f"ServiceNo eq '{service_no}'"
+        # BusRoutes pagination via $skip in chunks of 500.
+        # Note: endpoint may ignore $filter in practice; fetch pages then filter locally.
+        all_rows: list[dict[str, Any]] = []
+        skip = 0
+        page_size = 500
+        while True:
+            params = {"$skip": skip}
+            page = self._get("BusRoutes", params)
+            rows = page.get("value", []) or []
+            all_rows.extend(rows)
+            if len(rows) < page_size:
+                break
+            skip += page_size
+
+        filtered = [r for r in all_rows if str(r.get("ServiceNo")) == str(service_no)]
         if direction is not None:
-            filt += f" and Direction eq {direction}"
-        params = {"$filter": filt}
-        return self._get("BusRoutes", params)
+            filtered = [r for r in filtered if int(r.get("Direction", -1)) == int(direction)]
+
+        return {"value": filtered}

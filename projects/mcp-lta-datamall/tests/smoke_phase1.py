@@ -18,16 +18,16 @@ def main() -> int:
     # Example stop code in SG (adjustable)
     eta = tools.bus_arrival("83139")
     print("bus_arrival ok:", eta.ok)
-    print("services:", len(eta.data.get("Services", [])))
+    print("services:", eta.data.get("count"))
 
     route = tools.bus_route("15")
     print("bus_route ok:", route.ok)
-    print("rows:", len(route.data.get("value", [])))
+    print("rows:", route.data.get("count"))
 
     print("sample:")
     print(json.dumps({
-        "arrival_first": eta.data.get("Services", [])[:1],
-        "route_first": route.data.get("value", [])[:1],
+        "arrival_first": eta.data.get("services", [])[:1],
+        "route_first": route.data.get("routes", [])[:1],
     }, indent=2)[:1200])
     return 0
 
