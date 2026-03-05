@@ -59,7 +59,8 @@ class DataMallClient:
         params: dict[str, Any] = {"BusStopCode": stop_code}
         if service_no:
             params["ServiceNo"] = service_no
-        return self._get("BusArrivalv2", params)
+        # DataMall v6.7 docs use v3 endpoint for Bus Arrival
+        return self._get("v3/BusArrival", params)
 
     def bus_route(self, service_no: str, direction: int | None = None) -> dict[str, Any]:
         # BusRoutes supports $filter on ServiceNo (+ optional Direction)
