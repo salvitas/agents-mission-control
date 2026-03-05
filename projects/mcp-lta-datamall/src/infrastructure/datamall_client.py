@@ -7,9 +7,8 @@ import time
 from typing import Any
 from urllib import parse, request, error
 
-
-class DataMallError(RuntimeError):
-    pass
+from src.infrastructure.errors import ConfigError, UpstreamHttpError, UpstreamNetworkError, UpstreamRateLimitError
+from src.infrastructure.logging import log_event
 
 
 class DataMallClient:
@@ -17,7 +16,7 @@ class DataMallClient:
 
     def __init__(self, api_key: str, timeout_sec: int = 15, max_retries: int = 3):
         if not api_key:
-            raise DataMallError("Missing LTA_DATAMALL_API_KEY")
+            raise ConfigError("Missing LTA_DATAMALL_API_KEY")
         self.api_key = api_key
         self.timeout_sec = timeout_sec
         self.max_retries = max_retries
@@ -37,18 +36,27 @@ class DataMallClient:
             try:
                 with request.urlopen(req, timeout=self.timeout_sec) as resp:
                     raw = resp.read().decode("utf-8")
-                    return json.loads(raw)
+                    data = json.loads(raw)
+                    log_event("datamall.request.ok", path=path, attempt=attempt, status=getattr(resp, 'status', 200))
+                    return data
             except error.HTTPError as e:
+                log_event("datamall.request.http_error", path=path, attempt=attempt, status=e.code)
                 # retry transient and rate-limit
-                if e.code in (429, 500, 502, 503, 504) and attempt < self.max_retries:
+                if e.code == 429:
+                    if attempt < self.max_retries:
+                        self._sleep_backoff(attempt)
+                        continue
+                    raise UpstreamRateLimitError(f"HTTP 429 for {path}") from e
+                if e.code in (500, 502, 503, 504) and attempt < self.max_retries:
                     self._sleep_backoff(attempt)
                     continue
-                raise DataMallError(f"HTTP {e.code} for {path}") from e
+                raise UpstreamHttpError(f"HTTP {e.code} for {path}") from e
             except error.URLError as e:
+                log_event("datamall.request.network_error", path=path, attempt=attempt, error=str(e))
                 if attempt < self.max_retries:
                     self._sleep_backoff(attempt)
                     continue
-                raise DataMallError(f"Network error for {path}: {e}") from e
+                raise UpstreamNetworkError(f"Network error for {path}: {e}") from e
 
     @staticmethod
     def _sleep_backoff(attempt: int) -> None:

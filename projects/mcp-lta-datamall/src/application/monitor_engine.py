@@ -9,6 +9,7 @@ from src.interfaces import tools
 from src.domain.monitor import MonitorConfig, MonitorState
 from src.infrastructure.state_store import StateStore
 from src.infrastructure.notifier import Notifier
+from src.infrastructure.logging import log_event
 
 
 @dataclass
@@ -31,9 +32,11 @@ class MonitorEngine:
 
     def tick(self, cfg: MonitorConfig) -> None:
         now = datetime.now().astimezone()
+        log_event("monitor.tick.start", monitor_id=cfg.id, origin=cfg.origin, destination=cfg.destination, service_no=cfg.service_no)
 
         res = tools.leave_time(origin=cfg.origin, destination=cfg.destination, service_no=cfg.service_no)
         if not res.ok:
+            log_event("monitor.tick.leave_time_error", monitor_id=cfg.id, error=res.data)
             return
 
         plan = (res.data or {}).get("plan", {})
@@ -45,6 +48,7 @@ class MonitorEngine:
 
         if in_quiet_hours(now, cfg.quiet_hours_start, cfg.quiet_hours_end):
             # still update state, suppress alert
+            log_event("monitor.tick.quiet_hours_suppressed", monitor_id=cfg.id, recommendation=rec)
             state.last_recommendation = rec
             state.updated_at = now.isoformat()
             self.store.set_state(cfg.id, state)
@@ -56,7 +60,11 @@ class MonitorEngine:
                 msg = self._format_alert(cfg, mins, crossed, res.data)
                 for ch in cfg.channels:
                     for t in self.targets.get(ch, []):
-                        self.notifier.send(ch, t.target, msg)
+                        try:
+                            self.notifier.send(ch, t.target, msg)
+                            log_event("monitor.alert.sent", monitor_id=cfg.id, channel=ch, target=t.target, threshold=crossed)
+                        except Exception as e:
+                            log_event("monitor.alert.send_error", monitor_id=cfg.id, channel=ch, target=t.target, error=str(e))
                 state.last_alert_key = alert_key
 
         state.last_recommendation = rec
