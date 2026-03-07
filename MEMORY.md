@@ -18,6 +18,7 @@
 ## Assistant operating preferences from user
 
 - Default email communication should use AgentMail inbox `salva@agentmail.to`
+- For web searches/page browsing, default to `agent-browser`; use fallback browser methods only if agent-browser is unavailable/failing
 
 - Ask before most workspace changes unless explicitly requested
 - Ask before external sends/actions unless explicitly approved

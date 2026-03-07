@@ -19,6 +19,7 @@ _Learn about the person you're helping. Update this as you go._
 - **Env vars workflow:** Always add requested env vars to `~/.zshrc`
 - **OpenClaw config workflow:** Before changing `openclaw.json`, always check latest docs + schema validation first
 - **Email client workflow:** Prefer AgentMail (`salva@agentmail.to`) as default for email communication
+- **Web browsing workflow:** Use `agent-browser` by default for all web searches/page browsing; only fall back if unavailable/failing
 
 ## Context
 
