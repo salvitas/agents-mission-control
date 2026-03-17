@@ -33,12 +33,12 @@ function refreshIcons() {
 
 function renderTasks() {
   const tabs = ['all', ...Array.from(new Set(tasks.map((t) => t.tab || 'general'))).sort()];
-  $('taskTabs').innerHTML = tabs.map((t) => `<button class="pill" onclick="setTaskTab('${encodeURIComponent(t)}')">${t}</button>`).join('');
+  $('taskTabs').innerHTML = tabs.map((t) => `<button class="pill task-tab" data-tab="${encodeURIComponent(t)}">${t}</button>`).join('');
   const filtered = selectedTaskTab === 'all' ? tasks : tasks.filter((t) => (t.tab || 'general') === selectedTaskTab);
   $('kanban').innerHTML = STATUS.map((s) => {
     const label = s.replace('_', ' ').toUpperCase();
     const colTasks = filtered.filter((t) => t.status === s);
-    return `<div class="col"><h3>${label} (${colTasks.length})</h3>${colTasks.map((t) => `<div class="task"><div><strong>${t.title}</strong></div><small>${t.agentId} · ${t.tab}</small><div class="meta">Dispatch: ${t.dispatchState || 'idle'}${t.dispatchError ? `<br/>Err: ${t.dispatchError}` : ''}</div><div class="actions"><button onclick="moveTask('${t.id}','${s}')">Next</button><button onclick="dispatchTaskToAgent('${t.id}')">Send</button><button onclick="viewTaskResult('${t.id}')">Result</button><button onclick="deleteTask('${t.id}')">Delete</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
+    return `<div class="col"><h3>${label} (${colTasks.length})</h3>${colTasks.map((t) => `<div class="task"><div><strong>${t.title}</strong></div><small>${t.agentId} · ${t.tab}</small><div class="meta">Dispatch: ${t.dispatchState || 'idle'}${t.dispatchError ? `<br/>Err: ${t.dispatchError}` : ''}</div><div class="actions"><button class="task-action" data-action="next" data-id="${t.id}" data-status="${s}">Next</button><button class="task-action" data-action="send" data-id="${t.id}">Send</button><button class="task-action" data-action="result" data-id="${t.id}">Result</button><button class="task-action" data-action="delete" data-id="${t.id}">Delete</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
   }).join('');
 }
 
@@ -242,6 +242,11 @@ $('refreshBtn').addEventListener('click', refresh);
 $('searchBtn').addEventListener('click', searchTranscripts);
 $('addTaskBtn').addEventListener('click', addTask);
 $('addResearchBtn').addEventListener('click', addResearchRequest);
+$('taskTabs').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.task-tab');
+  if (!btn) return;
+  setTaskTab(btn.dataset.tab || 'all');
+});
 $('agents').addEventListener('click', (ev) => {
   const btn = ev.target.closest('.file-action');
   if (!btn) return;
@@ -250,6 +255,19 @@ $('agents').addEventListener('click', (ev) => {
   if (btn.dataset.action === 'edit') editFile(p);
   else viewFile(p);
 });
+
+$('kanban').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.task-action');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  if (!id || !action) return;
+  if (action === 'next') moveTask(id, btn.dataset.status || 'todo');
+  else if (action === 'send') dispatchTaskToAgent(id);
+  else if (action === 'result') viewTaskResult(id);
+  else if (action === 'delete') deleteTask(id);
+});
+
 $('editModeBtn').addEventListener('click', () => {
   if (!currentFilePath) return alert('Open a markdown file first');
   editMode = !editMode;
