@@ -43,11 +43,12 @@ function renderDashboard(d) {
   $('stats').innerHTML = [['Agents', agents.length], ['Sessions', d.status?.sessions?.count ?? 'n/a'], ['Cron jobs', d.cronJobs?.length ?? 0], ['Artifacts', d.artifacts?.length ?? 0], ['Adapters', d.adaptersCount ?? 0]].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
   $('agents').innerHTML = agents.map((a) => {
     const h = hb.get(a.id);
-    const insight = ai.get(a.id) || { cronCount: 0, coreFiles: [], memoryFiles: [] };
+    const insight = ai.get(a.id) || { cronCount: 0, coreFiles: [], memoryFiles: [], skills: [] };
     const badge = h?.enabled ? '<span class="badge ok">heartbeat on</span>' : '<span class="badge off">heartbeat off</span>';
     const coreActions = insight.coreFiles.slice(0, 12).map((f) => `<button onclick="viewFile('${encodeURIComponent(f.relPath)}')">${f.name}</button>`).join('');
     const memActions = insight.memoryFiles.slice(0, 20).map((f) => `<button onclick="viewFile('${encodeURIComponent(f.relPath)}')">${f.name}</button>`).join('');
-    return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Memory files: ${insight.memoryFiles.length}`, `${coreActions}${memActions}`);
+    const skills = (insight.skills || []).map((s) => s.name).join(', ') || 'none';
+    return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Skills: ${skills}<br/>Memory files: ${insight.memoryFiles.length}`, `${coreActions}${memActions}`);
   }).join('');
   $('cronJobs').innerHTML = (d.cronJobs || []).map((j) => card(`${j.name} (${j.id})`, `Agent: ${j.agentId}<br/>Schedule: ${j.schedule?.expr || 'n/a'}<br/>Last: ${j.state?.lastRunStatus || 'n/a'} · ${fmtAge(Date.now() - (j.state?.lastRunAtMs || Date.now()))} ago`, `<button onclick="runCron('${j.id}')">Run now</button>`)).join('') || '<div class="meta">No cron jobs.</div>';
   const queues = (d.artifacts || []).filter((a) => a.type === 'queue');
@@ -70,7 +71,7 @@ async function loadTasks() {
 async function refresh() {
   const r = await fetch('/api/dashboard');
   renderDashboard(await r.json());
-  await Promise.all([loadAudit(), loadTasks()]);
+  await Promise.all([loadAudit(), loadTasks(), loadResearchRequests()]);
 }
 
 async function addTask() {
@@ -96,6 +97,55 @@ async function deleteTask(id) {
   await loadTasks();
 }
 
+async function loadResearchRequests() {
+  const r = await fetch('/api/research/requests');
+  const d = await r.json();
+  const rows = d.requests || [];
+  $('researchRequests').innerHTML = rows.map((x) => {
+    const actions = x.status === 'pending'
+      ? `<button onclick="approveResearch('${x.id}')">Approve & Run</button><button onclick="declineResearch('${x.id}')">Decline</button>`
+      : '';
+    const resultBtn = x.result ? `<button onclick="viewTextResult('${encodeURIComponent(x.result)}')">View result</button>` : '';
+    return card(`${x.capability} · ${x.topic}`, `Status: ${x.status}<br/>Created: ${new Date(x.createdAt).toLocaleString()}<br/>Context: ${x.context || '-'}`, `${actions}${resultBtn}`);
+  }).join('') || '<div class="meta">No research requests yet.</div>';
+}
+
+async function addResearchRequest() {
+  ensureToken();
+  const capability = $('researchCapability').value;
+  const topic = $('researchTopic').value.trim();
+  const context = $('researchContext').value.trim();
+  if (!topic) return alert('Research topic required');
+  const r = await fetch('/api/research/requests', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ capability, topic, context }) });
+  const d = await r.json();
+  if (d.error) return alert(d.error);
+  $('researchTopic').value = '';
+  $('researchContext').value = '';
+  await loadResearchRequests();
+}
+
+async function approveResearch(id) {
+  ensureToken();
+  const r = await fetch(`/api/research/requests/${encodeURIComponent(id)}/approve`, { method: 'POST', headers: authHeaders() });
+  const d = await r.json();
+  if (d.error) alert(d.error);
+  await loadResearchRequests();
+}
+
+async function declineResearch(id) {
+  ensureToken();
+  const reason = prompt('Decline reason (optional):') || '';
+  const r = await fetch(`/api/research/requests/${encodeURIComponent(id)}/decline`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ reason }) });
+  const d = await r.json();
+  if (d.error) alert(d.error);
+  await loadResearchRequests();
+}
+
+function viewTextResult(encoded) {
+  $('viewer').textContent = decodeURIComponent(encoded);
+  switchPanel('viewer');
+}
+
 function setTaskTab(tab) {
   selectedTaskTab = decodeURIComponent(tab);
   renderTasks();
@@ -111,8 +161,9 @@ document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () 
 $('refreshBtn').addEventListener('click', refresh);
 $('searchBtn').addEventListener('click', searchTranscripts);
 $('addTaskBtn').addEventListener('click', addTask);
+$('addResearchBtn').addEventListener('click', addResearchRequest);
 const ws = new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.type === 'dashboard') renderDashboard(m.data); };
 
 refresh();
-window.viewFile = viewFile; window.approveOne = approveOne; window.runCron = runCron; window.moveTask = moveTask; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab;
+window.viewFile = viewFile; window.approveOne = approveOne; window.runCron = runCron; window.moveTask = moveTask; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;

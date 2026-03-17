@@ -14,6 +14,7 @@ const DEFAULTS = {
   adaptersPath: path.join(__dirname, 'config', 'queue-adapters.json'),
   auditPath: path.join(__dirname, 'data', 'approval-audit.jsonl'),
   tasksPath: path.join(__dirname, 'data', 'tasks.json'),
+  researchPath: path.join(__dirname, 'data', 'research-requests.json'),
   missionToken: process.env.MISSION_CONTROL_TOKEN || '',
 };
 
@@ -174,6 +175,20 @@ async function createRuntime(config = {}) {
     return { pending: null, done: null, total: null, adapter: ad.name };
   }
 
+  async function readAgentSkills(workspaceDir) {
+    const root = path.join(workspaceDir, 'skills', 'local');
+    const entries = await fsp.readdir(root, { withFileTypes: true }).catch(() => []);
+    const skills = [];
+    for (const e of entries) {
+      if (!e.name || e.name.startsWith('.')) continue;
+      const full = path.join(root, e.name);
+      let target = null;
+      try { if ((await fsp.lstat(full)).isSymbolicLink()) target = await fsp.readlink(full); } catch {}
+      skills.push({ name: e.name, target });
+    }
+    return skills;
+  }
+
   async function buildDataset() {
     const [statusOut, cronOut, adapters] = await Promise.all([
       execFileP('openclaw', ['status', '--json'], { cwd: cfg.workspace }),
@@ -226,11 +241,13 @@ async function createRuntime(config = {}) {
           .map((e) => ({ name: e.name, relPath: path.join(relBase, 'memory', e.name) }));
       }
 
+      const skills = await readAgentSkills(workspaceDir).catch(() => []);
       agentInsights.push({
         agentId: a.id,
         cronCount: cronByAgent[a.id] || 0,
         coreFiles,
         memoryFiles,
+        skills,
       });
     }
 
@@ -306,6 +323,36 @@ async function createRuntime(config = {}) {
     await fsp.writeFile(cfg.tasksPath, JSON.stringify(tasks, null, 2));
   }
 
+  const RESEARCH_CAPABILITIES = ['web_research', 'compare_options', 'market_scan', 'fact_check'];
+  function sanitizeResearchInput(input = {}) {
+    const capability = String(input.capability || '').trim();
+    if (!RESEARCH_CAPABILITIES.includes(capability)) throw new Error('invalid capability');
+    const topic = String(input.topic || '').trim().slice(0, 240);
+    if (!topic) throw new Error('topic is required');
+    return {
+      capability,
+      topic,
+      context: String(input.context || '').slice(0, 2000),
+      status: 'pending',
+    };
+  }
+
+  async function readResearchRequests() {
+    const raw = safeJson(await fsp.readFile(cfg.researchPath, 'utf8').catch(() => '[]'), []);
+    return Array.isArray(raw) ? raw : [];
+  }
+
+  async function writeResearchRequests(items) {
+    await fsp.mkdir(path.dirname(cfg.researchPath), { recursive: true });
+    await fsp.writeFile(cfg.researchPath, JSON.stringify(items, null, 2));
+  }
+
+  function buildResearchPrompt(item) {
+    const header = `Capability: ${item.capability}\nTopic: ${item.topic}`;
+    const context = item.context ? `\nContext:\n${item.context}` : '';
+    return `${header}${context}\n\nPlease run your best research workflow and return:\n1) Executive summary\n2) Key findings (with sources)\n3) Risks/uncertainties\n4) Recommended next actions.`;
+  }
+
   let cache = null;
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server, path: '/ws' });
@@ -345,6 +392,57 @@ async function createRuntime(config = {}) {
 
   app.get('/api/tasks', async (_req, res, next) => {
     try { res.json({ tasks: await readTasks() }); } catch (e) { next(e); }
+  });
+
+  app.get('/api/research/capabilities', (_req, res) => {
+    res.json({ capabilities: RESEARCH_CAPABILITIES });
+  });
+
+  app.get('/api/research/requests', async (_req, res, next) => {
+    try { res.json({ requests: await readResearchRequests() }); } catch (e) { next(e); }
+  });
+
+  app.post('/api/research/requests', requireToken, async (req, res, next) => {
+    try {
+      const item = sanitizeResearchInput(req.body || {});
+      const rows = await readResearchRequests();
+      const created = { id: crypto.randomUUID(), ...item, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      rows.unshift(created);
+      await writeResearchRequests(rows);
+      await appendAudit({ type: 'research_request_create', requestId: created.id, actor: req.ip, capability: created.capability });
+      res.json({ ok: true, request: created });
+    } catch (e) { next(e); }
+  });
+
+  app.post('/api/research/requests/:id/decline', requireToken, async (req, res, next) => {
+    try {
+      const id = String(req.params.id || '');
+      const rows = await readResearchRequests();
+      const i = rows.findIndex((r) => r.id === id);
+      if (i < 0) return res.status(404).json({ error: 'Request not found' });
+      rows[i] = { ...rows[i], status: 'declined', declineReason: String(req.body?.reason || '').slice(0, 500), updatedAt: new Date().toISOString() };
+      await writeResearchRequests(rows);
+      await appendAudit({ type: 'research_request_decline', requestId: id, actor: req.ip });
+      res.json({ ok: true, request: rows[i] });
+    } catch (e) { next(e); }
+  });
+
+  app.post('/api/research/requests/:id/approve', requireToken, async (req, res, next) => {
+    try {
+      const id = String(req.params.id || '');
+      const rows = await readResearchRequests();
+      const i = rows.findIndex((r) => r.id === id);
+      if (i < 0) return res.status(404).json({ error: 'Request not found' });
+      if (rows[i].status !== 'pending') return res.status(400).json({ error: 'Only pending requests can be approved' });
+
+      rows[i] = { ...rows[i], status: 'approved', updatedAt: new Date().toISOString() };
+      const prompt = buildResearchPrompt(rows[i]);
+      const out = await execFileP('openclaw', ['agent', '--agent', 'lucy-research', '--message', prompt, '--json', '--timeout', '180'], { cwd: cfg.workspace });
+      rows[i] = { ...rows[i], status: 'completed', result: out.stdout.slice(0, 12000), updatedAt: new Date().toISOString() };
+      await writeResearchRequests(rows);
+      await appendAudit({ type: 'research_request_approve', requestId: id, actor: req.ip, agentId: 'lucy-research' });
+      res.json({ ok: true, request: rows[i] });
+    } catch (e) { next(e); }
   });
 
   app.post('/api/tasks', requireToken, async (req, res, next) => {

@@ -14,6 +14,10 @@ async function setupFixture() {
   const bin = path.join(root, 'bin');
   await fsp.mkdir(path.join(workspace, 'agents', 'dev'), { recursive: true });
   await fsp.mkdir(path.join(workspace, 'memory'), { recursive: true });
+  await fsp.mkdir(path.join(workspace, 'skills', 'local'), { recursive: true });
+  await fsp.mkdir(path.join(workspace, 'skill-src', 'research-suite'), { recursive: true });
+  await fsp.symlink(path.join(workspace, 'skill-src', 'research-suite'), path.join(workspace, 'skills', 'local', 'research-suite'));
+
   await fsp.mkdir(path.join(state, 'agents', 'lucy-dev', 'sessions'), { recursive: true });
   await fsp.mkdir(bin, { recursive: true });
 
@@ -27,7 +31,7 @@ async function setupFixture() {
 
   const openclawScript = `#!/bin/sh
 if [ "$1" = "status" ]; then
-  echo '{"sessions":{"count":1,"recent":[]},"agents":{"agents":[{"id":"lucy-dev","name":"Lucy Dev","lastActiveAgeMs":1000}]},"heartbeat":{"agents":[{"agentId":"lucy-dev","enabled":true}]}}'
+  echo '{"sessions":{"count":1,"recent":[]},"agents":{"agents":[{"id":"lucy-dev","name":"Lucy Dev","workspaceDir":"'"$MC_WORKSPACE"'","lastActiveAgeMs":1000}]},"heartbeat":{"agents":[{"agentId":"lucy-dev","enabled":true}]}}'
   exit 0
 fi
 if [ "$1" = "cron" ] && [ "$2" = "list" ]; then
@@ -36,6 +40,10 @@ if [ "$1" = "cron" ] && [ "$2" = "list" ]; then
 fi
 if [ "$1" = "cron" ] && [ "$2" = "run" ]; then
   echo '{"ok":true}'
+  exit 0
+fi
+if [ "$1" = "agent" ]; then
+  echo '{"reply":"research done","ok":true}'
   exit 0
 fi
 exit 1
@@ -54,9 +62,11 @@ exit 1
 async function withRuntime(fn) {
   const fx = await setupFixture();
   const oldPath = process.env.PATH;
+  const oldWs = process.env.MC_WORKSPACE;
   process.env.PATH = `${fx.bin}:${oldPath}`;
-  const rt = await createRuntime({ workspace: fx.workspace, openclawState: fx.state, adaptersPath: fx.adaptersPath, auditPath: fx.auditPath, tasksPath: fx.tasksPath, missionToken: 'tkn' });
-  try { await fn({ fx, rt }); } finally { process.env.PATH = oldPath; await rt.stop(); }
+  process.env.MC_WORKSPACE = fx.workspace;
+  const rt = await createRuntime({ workspace: fx.workspace, openclawState: fx.state, adaptersPath: fx.adaptersPath, auditPath: fx.auditPath, tasksPath: fx.tasksPath, researchPath: path.join(fx.root, 'research.json'), missionToken: 'tkn' });
+  try { await fn({ fx, rt }); } finally { process.env.PATH = oldPath; process.env.MC_WORKSPACE = oldWs; await rt.stop(); }
 }
 
 test('dashboard loads, queue detected, and agent insights include cron counts', async () => withRuntime(async ({ rt }) => {
@@ -65,6 +75,7 @@ test('dashboard loads, queue detected, and agent insights include cron counts', 
   assert.equal(res.body.artifacts.some((a) => a.rel.endsWith('pending-approval.md')), true);
   assert.equal(Array.isArray(res.body.agentInsights), true);
   assert.equal(res.body.agentInsights[0].cronCount, 1);
+  assert.equal((res.body.agentInsights[0].skills || []).some((s) => s.name === 'research-suite'), true);
 }));
 
 test('approve endpoint requires token and updates markdown', async () => withRuntime(async ({ rt, fx }) => {
@@ -89,4 +100,16 @@ test('tasks CRUD with auth works', async () => withRuntime(async ({ rt }) => {
   await request(rt.app).delete(`/api/tasks/${id}`).set('x-mission-token', 'tkn').expect(200);
   const after = await request(rt.app).get('/api/tasks').expect(200);
   assert.equal(after.body.tasks.length, 0);
+}));
+
+test('research request approval workflow works', async () => withRuntime(async ({ rt }) => {
+  await request(rt.app).post('/api/research/requests').send({ capability: 'web_research', topic: 'x' }).expect(401);
+  const created = await request(rt.app).post('/api/research/requests').set('x-mission-token', 'tkn').send({ capability: 'web_research', topic: 'OpenClaw architecture' }).expect(200);
+  const id = created.body.request.id;
+  const approved = await request(rt.app).post(`/api/research/requests/${id}/approve`).set('x-mission-token', 'tkn').expect(200);
+  assert.equal(approved.body.request.status, 'completed');
+  await request(rt.app).post('/api/research/requests').set('x-mission-token', 'tkn').send({ capability: 'fact_check', topic: 'test' }).expect(200);
+  const list = await request(rt.app).get('/api/research/requests').expect(200);
+  const pending = list.body.requests.find((r) => r.status === 'pending');
+  await request(rt.app).post(`/api/research/requests/${pending.id}/decline`).set('x-mission-token', 'tkn').send({ reason: 'not needed' }).expect(200);
 }));
