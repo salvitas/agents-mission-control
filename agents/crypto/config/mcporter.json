@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "hyperliquid": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/salva/.openclaw/workspace/agents/crypto/skills/local/hyperliquid-mcp-src",
+        "run",
+        "python",
+        "-m",
+        "hyperliquid_mcp.server"
+      ],
+      "env": {
+        "HYPERLIQUID_TESTNET": "false",
+        "HYPERLIQUID_ACCOUNT_ADDRESS": "0x6B58cB696a4e76BAc85196040a8A95CC8dC8c461"
+      }
+    }
+  },
+  "imports": []
+}

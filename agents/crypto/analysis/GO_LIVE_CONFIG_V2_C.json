@@ -1,0 +1,42 @@
+{
+  "strategy": "V2_C",
+  "mode": "paper",
+  "market": "BTC",
+  "timeframe": "4h",
+  "risk": {
+    "riskPerTradePct": 0.75,
+    "maxTradesPerDay": 6,
+    "maxConcurrentPositions": 1,
+    "dailyLossLimitPct": 3.0,
+    "weeklyKillSwitchPct": 6.0
+  },
+  "execution": {
+    "requireBracketOrder": true,
+    "skipOnHighSlippage": true,
+    "skipOnWideSpread": true,
+    "noTradeAroundMacroHours": 2
+  },
+  "regime": {
+    "trend_ts_min": 0.16,
+    "trend_sep_min": 0.018,
+    "atr_min": 0.009,
+    "atr_max": 0.038,
+    "vol_mult": 1.00,
+    "range_ts_max": 0.14,
+    "range_bbw_max": 0.075,
+    "range_atr_max": 0.027
+  },
+  "entries": {
+    "trend_lb": 16,
+    "range_rsi_lo": 38,
+    "range_rsi_hi": 62
+  },
+  "exits": {
+    "trend_sl_atr": 1.8,
+    "trend_tp_atr": 3.6,
+    "trend_max_hold": 16,
+    "range_sl_atr": 1.2,
+    "range_tp_atr": 2.2,
+    "range_max_hold": 8
+  }
+}

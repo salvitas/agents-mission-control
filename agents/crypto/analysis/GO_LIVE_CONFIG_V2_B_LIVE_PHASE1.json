@@ -1,0 +1,48 @@
+{
+  "strategy": "V2_B",
+  "mode": "live_phase1",
+  "market": "BTC",
+  "timeframe": "4h",
+  "sessionFocus": "UTC0_US",
+  "risk": {
+    "riskPerTradePct": 0.75,
+    "maxTradesPerDay": 6,
+    "maxConcurrentPositions": 1,
+    "dailyLossLimitPct": 3.0,
+    "weeklyKillSwitchPct": 6.0
+  },
+  "execution": {
+    "requireBracketOrder": true,
+    "skipOnHighSlippage": true,
+    "skipOnWideSpread": true,
+    "noTradeAroundMacroHours": 2,
+    "deprioritizeOffSession": true
+  },
+  "regime": {
+    "trend_ts_min": 0.18,
+    "trend_sep_min": 0.02,
+    "atr_min": 0.009,
+    "atr_max": 0.036,
+    "vol_mult": 1.05,
+    "range_ts_max": 0.12,
+    "range_bbw_max": 0.065,
+    "range_atr_max": 0.023
+  },
+  "entries": {
+    "trend_lb": 18,
+    "range_rsi_lo": 36,
+    "range_rsi_hi": 64
+  },
+  "exits": {
+    "trend_sl_atr": 1.6,
+    "trend_tp_atr": 3.4,
+    "trend_max_hold": 18,
+    "range_sl_atr": 1.1,
+    "range_tp_atr": 2.0,
+    "range_max_hold": 9
+  },
+  "reporting": {
+    "dailySummaryTimeSGT": "07:00",
+    "channel": "telegram"
+  }
+}

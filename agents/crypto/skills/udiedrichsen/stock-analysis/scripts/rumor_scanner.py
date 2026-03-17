@@ -16,6 +16,7 @@ import os
 import subprocess
 import sys
 import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import urlopen, Request
@@ -25,8 +26,8 @@ import gzip
 CACHE_DIR = Path(__file__).parent.parent / "cache"
 CACHE_DIR.mkdir(exist_ok=True)
 
-# Bird CLI path
-BIRD_CLI = "/home/clawdbot/.nvm/versions/node/v24.12.0/bin/bird"
+# Bird CLI path (override with BIRD_CLI env). Falls back to PATH lookup.
+BIRD_CLI = os.environ.get("BIRD_CLI") or shutil.which("bird") or "bird"
 BIRD_ENV = Path(__file__).parent.parent / ".env"
 
 def load_env():
@@ -61,12 +62,12 @@ def search_twitter_rumors():
     
     # Rumor-focused search queries
     queries = [
-        '"hearing that" stock OR $',
+        '"hearing that" stock',
         '"sources say" stock OR company',
         '"rumor" merger OR acquisition',
         'insider buying stock',
         '"upgrade" OR "downgrade" stock tomorrow',
-        '$AAPL OR $TSLA OR $NVDA rumor',
+        'AAPL OR TSLA OR NVDA rumor',
         '"breaking" stock market',
         'M&A rumor',
     ]
@@ -117,7 +118,7 @@ def search_twitter_buzz():
     results = []
     
     queries = [
-        '$SPY OR $QQQ',
+        'SPY OR QQQ',
         'stock to buy',
         'calls OR puts expiring',
         'earnings play',
@@ -201,7 +202,7 @@ def search_news_rumors():
 
 def extract_symbols_from_text(text):
     """Extract stock symbols from text."""
-    # $SYMBOL pattern
+    # cashtag ticker pattern
     dollar_symbols = re.findall(r'\$([A-Z]{1,5})\b', text)
     
     # Common company name to symbol mapping

@@ -4,6 +4,42 @@
     "mcp-hass": {
       "version": "1.0.1",
       "installedAt": 1771905303848
+    },
+    "cmc-mcp": {
+      "version": "1.0.3",
+      "installedAt": 1772630521063
+    },
+    "cmc-api-crypto": {
+      "version": "1.0.3",
+      "installedAt": 1772630529227
+    },
+    "cmc-api-market": {
+      "version": "1.0.1",
+      "installedAt": 1772630532669
+    },
+    "cmc-api-exchange": {
+      "version": "1.0.2",
+      "installedAt": 1772630538143
+    },
+    "cmc-api-onchain-data": {
+      "version": "1.0.1",
+      "installedAt": 1772630544677
+    },
+    "cmc-x402": {
+      "version": "1.0.1",
+      "installedAt": 1772630547600
+    },
+    "market-report-using-cmc-mcp": {
+      "version": "1.0.0",
+      "installedAt": 1772630551057
+    },
+    "crypto-research-using-cmc-mcp": {
+      "version": "1.0.0",
+      "installedAt": 1772630556433
+    },
+    "agentmail": {
+      "version": "1.1.1",
+      "installedAt": 1772635167222
     }
   }
 }

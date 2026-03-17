@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "type": "monthly_payment_reminder",
+  "startDate": "2026-03-06",
+  "reminderDay": 6,
+  "remainingReminders": 19,
+  "lastReminderMonth": "",
+  "amount": 1435,
+  "currency": "USD",
+  "note": "Employee monthly net payment with $65 advance deduction"
+}

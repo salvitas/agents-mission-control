@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "phase": "paper_eval",
+  "startDate": "2026-03-09",
+  "endDate": "2026-03-14",
+  "decisionDate": "2026-03-15",
+  "strategies": [
+    "V2_B",
+    "V2_C"
+  ],
+  "status": "live_phase1",
+  "winner": "V2_B",
+  "maxTradesPerDay": 6,
+  "backtestIntervalHours": 4,
+  "lastBacktestRunAt": "2026-03-10T04:45:22Z",
+  "dailySummaryTimeSGT": "07:00",
+  "lastDailySummaryDate": "2026-03-10",
+  "notes": "Parallel paper evaluation for 6 days; choose winner on day 7"
+}

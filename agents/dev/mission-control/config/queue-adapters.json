@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "adapters": [
+    {
+      "name": "markdown-checklist-default",
+      "match": { "ext": ".md", "pathRegex": "(queue|approval|pending)" },
+      "parser": { "type": "markdownCheckbox" }
+    },
+    {
+      "name": "json-status-array-default",
+      "match": { "ext": ".json", "pathRegex": "(queue|approval|pending)" },
+      "parser": {
+        "type": "jsonStatusArray",
+        "statusField": "status",
+        "pendingValues": ["pending", "queued", "waiting"],
+        "approvedValues": ["approved", "done", "ok"]
+      }
+    }
+  ]
+}

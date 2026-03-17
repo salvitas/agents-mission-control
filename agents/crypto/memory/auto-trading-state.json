@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "strategy": "V2_B",
+  "phase": "live_phase1",
+  "maxRiskPerTradePct": 0.75,
+  "maxTradesPerDay": 6,
+  "dailyTradeCount": 0,
+  "dailyRealizedPnlPct": 0,
+  "dayKey": "2026-03-05",
+  "paused": false
+}

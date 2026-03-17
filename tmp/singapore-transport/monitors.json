@@ -1,0 +1,52 @@
+{
+  "monitors": {
+    "f170e391-db10-4718-b952-1638fa7b56ed": {
+      "id": "f170e391-db10-4718-b952-1638fa7b56ed",
+      "origin": "home",
+      "destination": "Tampines MRT",
+      "service_no": "15",
+      "channels": [
+        "telegram",
+        "whatsapp"
+      ],
+      "thresholds_min": [
+        15,
+        10,
+        5
+      ],
+      "quiet_hours_start": "23:00",
+      "quiet_hours_end": "07:00",
+      "enabled": true
+    },
+    "2fe282d4-ea76-4442-81f8-4a82e897ba4a": {
+      "id": "2fe282d4-ea76-4442-81f8-4a82e897ba4a",
+      "origin": "home",
+      "destination": "Tampines MRT",
+      "service_no": "15",
+      "channels": [
+        "telegram",
+        "whatsapp"
+      ],
+      "thresholds_min": [
+        15,
+        10,
+        5
+      ],
+      "quiet_hours_start": "23:00",
+      "quiet_hours_end": "07:00",
+      "enabled": true
+    }
+  },
+  "state": {
+    "f170e391-db10-4718-b952-1638fa7b56ed": {
+      "last_recommendation": "leave_now",
+      "last_alert_key": "th:15|rec:leave_now",
+      "updated_at": "2026-03-05T09:39:52.837693+08:00"
+    },
+    "2fe282d4-ea76-4442-81f8-4a82e897ba4a": {
+      "last_recommendation": "leave_now",
+      "last_alert_key": "th:15|rec:leave_now",
+      "updated_at": "2026-03-05T09:39:53.371778+08:00"
+    }
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "timestamp": "2026-03-02T19:53:16.400164+00:00",
+  "rumors": [
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Accenture Song/WPP merger rumors swirl, but would it make sense? - The Drum",
+      "link": "https://news.google.com/rss/articles/CBMijwFBVV95cUxNRVd5MHd2NzlJZmZTZm5iWlBVQVl0cFlXUFE1am9rMURoWmM2bzFPcElyY2F3aVdlWDZCaVpPWjUtVzd6a1VSMmZrendZeXBCSm0yWktwazJFMlBCOVhDWTdSWDJ5dUJmZ0xMdkVuTVVtTl9MS1BCbFdrLUtCMzAtaFBrR2JRYkxkZTRhM2pxWQ?oc=5",
+      "date": "Tue, 15 Jul 2025 07:00:00 GMT",
+      "query": "merger acquisition rumor",
+      "score": 7,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "As railroad merger rumors swirl, CSX CEO says working with peers is the best way to boost value - CNBC",
+      "link": "https://news.google.com/rss/articles/CBMizAFBVV95cUxQUldUVGpXWmZ6WHRJLWlhWmFZdGlrUVFCRTJCSUxTbVdVR1VuYVJCeDhJclRqX2FPM1plVzNidHItN3lRYXpObDQwVkcxb3RoUXdlMjdEU3FtSzlZQ3hUQ3ZsY3dubkNMSWFkQUpUTlNWQXhBVkp1anVUdGVSSlhRMGtUMWt0dVpTS05DZFNnbUxOSGVuQ3l3U052dTMzaDBrclNDNlZUeXFEVy1GdnhhRlIyaXRKUHdmcGNtT3JVNkVjMjBWbXc3dW1CVkPSAdIBQVVfeXFMUHJmZUhvVE5VT0k4bEJmZVIxTlJYSmZJLXJTam5iZVVTYlUtelRVM2FEeUJBdWluaVZDR3E4aG1PeGRSN1V5UWJlbFd4MTBRY3BtWnBwUlMxcEZvbWFSdWR0b3FtbUVDN3QyT0sySW5fVEhfdHBvUndTamN2WFdVamk4WWF5VnRrYkdzNkZsOFlKV3BRTGo5b1U5RkRIUC0xaF94TElBVHItcGM5d0hVVEdRVU53WkJRcDF2ZUJPTkppNWJfX1JCbDNaT2FfYkdUZjRB?oc=5",
+      "date": "Wed, 27 Aug 2025 07:00:00 GMT",
+      "query": "merger acquisition rumor",
+      "score": 7,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Eli Lilly acquisition rumors reportedly fuel Abivax rally - Seeking Alpha",
+      "link": "https://news.google.com/rss/articles/CBMijAFBVV95cUxQVmxkWXNtVF9Mb1ItclZ6a3p3RVlWTnZSWEhMc3BVT0R0WmhiSjlZeEZCNFp4YklBT0xaSFZQNTlMWHlYWlJjaTFKSEZJS2F2Y0pPVVQyVWZXTENyWkUtMXBDbmI2Uk5JYkZLODNVM0NycUQtTnBZWFExUUQ5dU9HaFdiakZqVFhkU2NLNw?oc=5",
+      "date": "Wed, 10 Dec 2025 08:00:00 GMT",
+      "query": "merger acquisition rumor",
+      "score": 7,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Warner Bros. Discovery deems Paramount's takeover bid superior to Netflix deal - ABC7 Los Angeles",
+      "link": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxPc1Y1aTh1UVZXbk5Wa29mZFBHRmVQMG9vcmRobHhCcm1nRnhCUG16dlkwQjdkSkRoc1RrVnZwZElFY0czY0dWYzh2dDdQcmphcWFZVm5ON1NJWndZcWQ1VkFfQVdGbDNrMDhhM042NEEyWVlyWEE1aWZ1aGdXNVktZEtETnptd295OTlNbFhnOWxNWWRXemJxMWRibmNxLU15WmZYSWhJdW7SAa4BQVVfeXFMTUM0NFpiM2lKeVN3NHZFemo1N0xUVHJPQ2N1czJkOUlNcF92U2IycGNGdkJJcFZkQl8zdi1Md2FnM01lN016ZDlxTXoyekd0NkVtNzRvdGJNQnM1b0psVHVhOUllQnpuejNpNko5OFJaUmpHN3E3a3pURFJwUmNRREQwaWhmUVZrN1pSY21vNkNsQmtEeXlHbWxCeDdCVEZMSE5uazlzb1NmVkdXajdn?oc=5",
+      "date": "Fri, 27 Feb 2026 00:41:21 GMT",
+      "query": "takeover bid company",
+      "score": 5,
+      "symbols": [
+        "NFLX"
+      ]
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "UK engineer Senior's shares surge as takeover offers pour in - Reuters",
+      "link": "https://news.google.com/rss/articles/CBMiogFBVV95cUxQVFF1Qkhla1JVN1ZhMFFLbndHV3BhcjZRQ1R1QnhrQXIwZ3QtUjdwSmpFb3BIblZvRENRMDZjQUczR3ZXWU5EeXBmWHhha3ZmNDk3bkxnM3VQbi0wVk5GeFVyT21Zc2dWeG9tZ1B5WEFqM1hMNlZldnVXODRGNzVld19KbDlydnRGVVIzRVlaWG9LQllQUl9qOVpOSHFYRi0zUVE?oc=5",
+      "date": "Fri, 27 Feb 2026 14:18:03 GMT",
+      "query": "takeover bid company",
+      "score": 5,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Major Las Vegas casino operator considering takeover bid, report says - Las Vegas Review-Journal",
+      "link": "https://news.google.com/rss/articles/CBMiywFBVV95cUxPZldnVHZiM19TaWpPMmdhTF9IXzN6MTFBSzd1ekt0TE5kcENXNUwtSy0wNnI5WWtQeFFwRVlBdDY2U2RfaTkyVXJKWW96Q0xhTk5XemsyR21PVWtWZ2hNN0dRcGdUSXJ1YWRtYjd6SVZtak0yblBHdUhFeVhScEhXamtIS1VIMW5uby1TNkZ3WXBjWG5aZWlWUU1SdFZheFh1SmlNQXFwc01ITkQ0N1lueWR0dzRSM0h6ZTlSNGNZcjFZblVkR1ppb3RpOA?oc=5",
+      "date": "Fri, 27 Feb 2026 20:23:00 GMT",
+      "query": "takeover bid company",
+      "score": 5,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Paramount has raised its takeover offer to $31 per share, Warner Bros. says - PBS",
+      "link": "https://news.google.com/rss/articles/CBMirgFBVV95cUxNS1lIT1ZkNm5CZmRUUDRvdDlGUzJKY0h6SXBENGZ6dG50dEdnVlJjX0I3RzI1UVhXdFdVMm1nMWZMR1RsamI2VldYdWY0Nndvb3dtMDBFSHNzdnVkY2ZreHRFdHhPLWFSbVlHZnpGY3NURVBTUWZUM19NWkRGaTJUZzVtc05vQ0ZjdUY5aDJDMHNnTG1oR1d4by1mYW9scFFfRkQ4M2NwTGxvYzNnckHSAbMBQVVfeXFMT1RNTVFFTXZ2dVRhVzJnMUJ6TXhJSDlrMW43Tm81S2tYaUdOaDZaWDV3eEZJVllqUTRTU0V6ZW9ldE1rSTYyUUotMTl4YWpiakRDLXRDWUM0ekgtWkxOaFlmRk04SlcxZWxwUndkUk5xTDlVc2ptQXkzcm5xWlRlNnlHSFRSZkpCb3hyTF9weGZURVRUa3hnbTd0OTI5aE9vTFl5TE1Sak8yRjFTYUl4SFh3OVE?oc=5",
+      "date": "Tue, 24 Feb 2026 23:38:07 GMT",
+      "query": "takeover bid company",
+      "score": 5,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Warner Bros. Discovery deems Paramount's takeover bid superior; Netflix declines to raise offer - KHBS",
+      "link": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxQSlp2QS1YNzB1ak1qVDR0V01EU09EU01PcGFVZDROV0l6UVFyRGtqamxQYW9ha2F1YW9CaFJTM2dmMUsyNS1DMlBwTUtXS1hMQzJIZjQycFZwWW9EcXN4amZnekwtelBUTEtiUjVBdmw0NEhPUHI4TUx3NjNJTFhlTUM5bE1aN1o1Y3RmSFhveGlCYmFEZTZ0b20xUTU5d3dGMFJkUkotSWJBQQ?oc=5",
+      "date": "Thu, 26 Feb 2026 21:47:54 GMT",
+      "query": "takeover bid company",
+      "score": 5,
+      "symbols": [
+        "NFLX"
+      ]
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Zions Bancorporation Named Top Dividend Stock With Insider Buying and 3.14% Yield (ZION) - Nasdaq",
+      "link": "https://news.google.com/rss/articles/CBMisAFBVV95cUxNTzdJZVlGMW5UcTgxSnl3Nk9JamMtM00wSFVWTGozQy03MlVPUHFPU0RPbzlvNm01SUZqSTRjZ0pvZjZ6UFFGSmcyZ24tRXBQa3pad0pycVF2enkxOGRTWTJYWVdtRV93Y1djcmhuaUZOWm1pd00wVzhiclBzZlh6N3ZyVGFGLUxjNVBrclA5aXlZR2Fwem9GdkQzUndoOHh4VEhvTk9PbVlweHZfNURaSA?oc=5",
+      "date": "Mon, 02 Mar 2026 16:00:00 GMT",
+      "query": "insider buying stock",
+      "score": 4,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Insider Stock Purchases: March 02, 2026 - Quiver Quantitative",
+      "link": "https://news.google.com/rss/articles/CBMiggFBVV95cUxOSklmNk9ZQ1ZINl92YTAwTUo2cEJhQ3RsdUFTZEc2enYxclpRazRocmJvRFQyOGpfSUdJT3Q1Qk1BUW9qUFhKYTZJS01CdkJnMXdXaXdyQ0lWd2gtdGRlckJmdlVJdlEzOHR2ZWI1aGZKaTRYaWlMSTFpWjBQTzNxU3FB?oc=5",
+      "date": "Mon, 02 Mar 2026 18:45:00 GMT",
+      "query": "insider buying stock",
+      "score": 4,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Insider Buying: Palvella Therapeutics (NASDAQ:PVLA) Director Acquires 4,000 Shares of Stock - MarketBeat",
+      "link": "https://news.google.com/rss/articles/CBMi1wFBVV95cUxOdzJnX0ducnFWOWN5b2tSWnBxWkFYM0RGNUkxbWtoeXRjMU1Da2ZOTFVKUG1jSnNMWXBCSC1xZDMzaFlTcWVvYzg5bzNEU0xmWU1DRGlELWk1RWZWVG1GQXJhYzVSNnI0VkZzTVlVMWtPX09YRFVpbldfcW9uWUtrbmJPMmZXN0pibHV6N1VpSFJEbjFKMkEtZlZ0RWJFeVNCbDNvSndTVEd6TDRmVk9RRVlNelpwTDhiOGlVbHB5T205OU1PbmFLUmJURHRER0thNGtyaGlRSQ?oc=5",
+      "date": "Mon, 02 Mar 2026 15:01:03 GMT",
+      "query": "insider buying stock",
+      "score": 4,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Carl Icahn and Other Insiders Are Doubling Down Amid Market Volatilities - 24/7 Wall St.",
+      "link": "https://news.google.com/rss/articles/CBMitwFBVV95cUxOc2R4VVdpOEdkRTE2QV9yemVLcnRzcjA2Tmc3YW5YUHlfLUdrRWNWTFRvYU9fOXQ3MFo3c3B4SDZzZzVudnllZ2VSUFpLTEtwUHgtdFoxb1dBXzFGVVpPSjFiZEQ4QkFEQXgyNERNSXdGeWhTZm9HbDE1cUxBaHF2WlNfeGRxbUh1MDBleVB1Uk5Ba2FTX011S2wxR1RUVXFabEgtOWtyNHJwdm11Y2ctRUVQdkhmUDQ?oc=5",
+      "date": "Mon, 02 Mar 2026 12:55:33 GMT",
+      "query": "insider buying stock",
+      "score": 4,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Insider Buying: Richard Macpherson Acquires Shares in Birchtech Corp (BCHT) - GuruFocus",
+      "link": "https://news.google.com/rss/articles/CBMisAFBVV95cUxObl85Q3ZoSmJ0MWEwemJ3WVBPakR6a3lYY1Q3OEdDSUU1UFpqY0IwMUhMd1daSkhlZWhwMzA3aXQxSi1RcXZPcWFBbGJFT01LYmlNdjRDME1NSXRUWHBmVXlkcUhEQmcwVmJIZlVUUW5pRk9BSXlfbE9ORGhGREwwY3pMdHBialBxVHBrUmFoN3h0cndoSzRSNlJxWmVwWmNWWTlHYWFhLVVuWnpTajdVXw?oc=5",
+      "date": "Mon, 02 Mar 2026 16:05:28 GMT",
+      "query": "insider buying stock",
+      "score": 4,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Intellia Therapeutics (NASDAQ:NTLA) Stock Price Up 10.7% on Analyst Upgrade - MarketBeat",
+      "link": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQd1lJNnlTazh3bXI0ZmFMN09NU0Iwak9QWS1kRWJSOUdDTGdSaTJvWl9fYXFfXzNwNmxzSUZRYVBOcVExb1V5amlWLVA4c3JCNnpVMnd4SEFra0NwMDg4MjFNWVZmYjJRUkpJTEdoWXJvOVZ5MDBVaGtKVnFnWl9weUk2eTF0cmFKbGN6dE5VUm9zYldCM1dBa29JSVg0SUhjbUJwbllRNG1WRG5Iem44aVVaX3Z3OWRJNnRFYlZJOGdUZw?oc=5",
+      "date": "Mon, 02 Mar 2026 19:20:02 GMT",
+      "query": "analyst upgrade stock",
+      "score": 3,
+      "symbols": [
+        "INTC"
+      ]
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "APA (NASDAQ:APA) Shares Gap Up on Analyst Upgrade - MarketBeat",
+      "link": "https://news.google.com/rss/articles/CBMiogFBVV95cUxNeEtoeFpBVngwalprQ0xhdWU4YUNKWVh4V1prYUNJS2FtT3VEQ2kzUDYxYThaTTZ3b3ptQ3IxUWpfUHIzZ2V4NTR5R3o3V050T0w2TDExZHdPcGlZUHRVak9hZ2c4M2xEaEZUdENLQ2FHMlZmZVFQLVBtdndJZ1dLb1pGX21fM2w1Wk9weTNQWHFQZDRmb0ctV3FUVEJheVpUQ1E?oc=5",
+      "date": "Mon, 02 Mar 2026 15:25:20 GMT",
+      "query": "analyst upgrade stock",
+      "score": 3,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Corteva (NYSE:CTVA) Reaches New 52-Week High After Analyst Upgrade - MarketBeat",
+      "link": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxPU2tSRHFubWl0N1BQVEU3Z25KbHhTbGtUSzJMMVlPZmlOV1lWWGhzTTIxYWhWVWhiVl9XTXp4TEFWX0c1eDdlOEtvdjNQUl9odTEzX3hDZ1dXZUxCUlZoS1pjSV9QNWRxUGhEbjVjWmFmVDFPOXdaZlduUWctU2pGdjdycmc4UkFhQmhOQV9GRjJSTnpHczFZYmxHc1RPTm1LRm5nU09UelRuRVlUV0R2SkpaUHFMY0hw?oc=5",
+      "date": "Mon, 02 Mar 2026 16:41:23 GMT",
+      "query": "analyst upgrade stock",
+      "score": 3,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Fastly (NYSE:FSLY) Sets New 12-Month High on Analyst Upgrade - MarketBeat",
+      "link": "https://news.google.com/rss/articles/CBMisAFBVV95cUxONlg5RldMeV9DLXA4V1FuNFJFUXo3M090SThRNVNsSDI1R1FzX0xBNDBYTGVEQnBBX0ZaUzhPUW5MVDAxNHZvandjTXVJVk9DX1pFYzVJRlg3T01FOHBtMHo0TjZQUnh2d0x6SE54VFZ4YXZJUDh4STFOVGU2YUNMOU9BdWMzX2tHV2ZkZG40aDczTlVVVnBfZlVKVWJHWjFhWXlPNTNJMkVtRmN1RWhyOA?oc=5",
+      "date": "Mon, 02 Mar 2026 19:19:57 GMT",
+      "query": "analyst upgrade stock",
+      "score": 3,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Quebecor (TSE:QBR.B) Hits New 1-Year High on Analyst Upgrade - MarketBeat",
+      "link": "https://news.google.com/rss/articles/CBMirwFBVV95cUxNeXo3Q1lVUGI0eTFMbmVGVVlTT3lmUnFlWjBweW5BMGNaT2pJTXF1bndRMmZQYW9vWkJPQmNPMGhEM1ZSXzdYaUVRVy0tWVlXOXA4M0s4cWM3RUdyZ0RsenZnaGdmbjBzdE5tdmpPbE82ZFM3LUpJNzBnUHF3V2ZSNGZIWUFTci1MN1h6dWpkdmRZYlVsRVpSV2o3ZVBCTDRNOVphUEFOSGhFNmd0UWRB?oc=5",
+      "date": "Mon, 02 Mar 2026 17:59:47 GMT",
+      "query": "analyst upgrade stock",
+      "score": 3,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Understanding SEC Investigations - Oberheiden P.C.",
+      "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTFAxYWRWNXpLY0JaR0owajVpQWRUakw4enlCSThQRHdkVmpjdGZQQmtsVjhzX01weUJrWGM0ZlYxbDcxa1laT1lSUWdCNUhvVWpJUG9mc2FKb3JjT0RXV1NIdjNnYjhScl95UTBRaA?oc=5",
+      "date": "Wed, 04 Feb 2026 08:00:00 GMT",
+      "query": "SEC investigation company",
+      "score": 3,
+      "symbols": []
+    },
+    {
+      "source": "google_news",
+      "type": "news_rumor",
+      "title": "Paramount CEO Focused on 'Building' and 'Transforming' Amid WBD M&A Rumors - ADWEEK",
+      "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxOR0FndzBwSEN1UFh1ZE5uVld5YV9JLTZsZExUaVljQ1NpY2lMdHlabGMzZFpWeGtLeUZnZWlCMlY0U0FkXzFnTG51VGllem8tZ3BsNkVfVWZBRUJDVFhjMHFka1lBUnZGWGhzeWc2RkN0NmhRSk9pSmltZmdGZ2htcFVkakVLeFhOYlI5VndaRlFPWTZTSUw0ZGZHRmZ3S1lvQk9hTFo0VFZiTGM?oc=5",
+      "date": "Mon, 10 Nov 2025 08:00:00 GMT",
+      "query": "merger acquisition rumor",
+      "score": 2,
+      "symbols": []
+    }
+  ],
+  "buzz": [],
+  "symbol_counts": {}
+}
