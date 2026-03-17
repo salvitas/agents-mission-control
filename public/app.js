@@ -50,7 +50,7 @@ function renderDashboard(d) {
     const mdList = [...(insight.coreFiles || []), ...(insight.memoryFiles || [])]
       .filter((f) => f.name.toLowerCase().endsWith('.md'))
       .slice(0, 40)
-      .map((f) => `<li>${f.name} <button class="file-action" data-action="view" data-path="${encodeURIComponent(f.relPath)}" title="View">👁</button> <button class="file-action" data-action="edit" data-path="${encodeURIComponent(f.relPath)}" title="Edit">✏️</button></li>`)
+      .map((f) => `<li>${f.name} <button class="file-action btn-flat btn-small" data-action="view" data-path="${encodeURIComponent(f.relPath)}" title="View"><i class="material-icons tiny">visibility</i></button> <button class="file-action btn-flat btn-small" data-action="edit" data-path="${encodeURIComponent(f.relPath)}" title="Edit"><i class="material-icons tiny">edit</i></button></li>`)
       .join('');
     const skills = (insight.skills || []).map((s) => s.name).join(', ') || 'none';
     return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Skills: ${skills}<br/>Markdown files: ${((insight.coreFiles||[]).length + (insight.memoryFiles||[]).length)}`, `<ul class="meta">${mdList || '<li>No markdown files</li>'}</ul>`);
