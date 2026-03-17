@@ -50,7 +50,7 @@ function renderDashboard(d) {
     const mdList = [...(insight.coreFiles || []), ...(insight.memoryFiles || [])]
       .filter((f) => f.name.toLowerCase().endsWith('.md'))
       .slice(0, 40)
-      .map((f) => `<li>${f.name} <button onclick="viewFile('${encodeURIComponent(f.relPath)}')">View</button> <button onclick="editFile('${encodeURIComponent(f.relPath)}')">Edit</button></li>`)
+      .map((f) => `<li>${f.name} <button class="file-action" data-action="view" data-path="${encodeURIComponent(f.relPath)}" title="View">👁</button> <button class="file-action" data-action="edit" data-path="${encodeURIComponent(f.relPath)}" title="Edit">✏️</button></li>`)
       .join('');
     const skills = (insight.skills || []).map((s) => s.name).join(', ') || 'none';
     return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Skills: ${skills}<br/>Markdown files: ${((insight.coreFiles||[]).length + (insight.memoryFiles||[]).length)}`, `<ul class="meta">${mdList || '<li>No markdown files</li>'}</ul>`);
@@ -198,6 +198,14 @@ $('refreshBtn').addEventListener('click', refresh);
 $('searchBtn').addEventListener('click', searchTranscripts);
 $('addTaskBtn').addEventListener('click', addTask);
 $('addResearchBtn').addEventListener('click', addResearchRequest);
+$('agents').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.file-action');
+  if (!btn) return;
+  const p = btn.dataset.path;
+  if (!p) return;
+  if (btn.dataset.action === 'edit') editFile(p);
+  else viewFile(p);
+});
 $('editModeBtn').addEventListener('click', () => {
   if (!currentFilePath) return alert('Open a markdown file first');
   editMode = !editMode;
