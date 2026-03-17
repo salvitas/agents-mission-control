@@ -43,16 +43,21 @@ function renderDashboard(d) {
   const hb = new Map((d.status?.heartbeat?.agents || []).map((x) => [x.agentId, x]));
   const ai = new Map((d.agentInsights || []).map((x) => [x.agentId, x]));
   const gw = d.status?.gateway;
-  const gwIcon = gw?.reachable ? '<span style="color:#90e0ad">●</span>' : '<span style="color:#f1abab">●</span>';
+  const dot = $('gatewayDot');
+  if (dot) dot.style.background = gw?.reachable ? '#90e0ad' : '#f1abab';
+
   $('stats').innerHTML = [
     ['Agents', agents.length],
     ['Sessions', d.status?.sessions?.count ?? 'n/a'],
     ['Cron jobs', d.cronJobs?.length ?? 0],
-    ['Tokens today', d.tokenUsage?.today ?? 0],
-    ['Tokens 7d', d.tokenUsage?.last7d ?? 0],
-    ['Tokens 30d', d.tokenUsage?.last30d ?? 0],
-    ['Gateway', `${gwIcon} ${gw?.reachable ? 'online' : 'offline'}`],
+    ['Artifacts', d.artifacts?.length ?? 0],
   ].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+
+  $('usageCards').innerHTML = [
+    ['Today', d.tokenUsage?.today ?? 0],
+    ['Last 7 days', d.tokenUsage?.last7d ?? 0],
+    ['Last 30 days', d.tokenUsage?.last30d ?? 0],
+  ].map(([k, v]) => `<div class="card"><h3>${k}</h3><div class="meta">Token usage window</div><div style="font-size:1.4rem;font-weight:700;margin-top:6px;">${v}</div></div>`).join('');
   $('agents').innerHTML = agents.map((a) => {
     const h = hb.get(a.id);
     const insight = ai.get(a.id) || { cronCount: 0, coreFiles: [], memoryFiles: [], skills: [] };
