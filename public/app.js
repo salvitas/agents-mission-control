@@ -38,7 +38,7 @@ function renderTasks() {
   $('kanban').innerHTML = STATUS.map((s) => {
     const label = s.replace('_', ' ').toUpperCase();
     const colTasks = filtered.filter((t) => t.status === s);
-    return `<div class="col"><h3>${label} (${colTasks.length})</h3>${colTasks.map((t) => `<div class="task"><div><strong>${t.title}</strong></div><small>${t.agentId} · ${t.tab}</small><div class="meta">Dispatch: ${t.dispatchState || 'idle'}${t.dispatchError ? `<br/>Err: ${t.dispatchError}` : ''}</div><div class="actions"><button onclick="moveTask('${t.id}','${s}')">Next</button><button onclick="dispatchTaskToAgent('${t.id}')">Send</button><button onclick="deleteTask('${t.id}')">Delete</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
+    return `<div class="col"><h3>${label} (${colTasks.length})</h3>${colTasks.map((t) => `<div class="task"><div><strong>${t.title}</strong></div><small>${t.agentId} · ${t.tab}</small><div class="meta">Dispatch: ${t.dispatchState || 'idle'}${t.dispatchError ? `<br/>Err: ${t.dispatchError}` : ''}</div><div class="actions"><button onclick="moveTask('${t.id}','${s}')">Next</button><button onclick="dispatchTaskToAgent('${t.id}')">Send</button><button onclick="viewTaskResult('${t.id}')">Result</button><button onclick="deleteTask('${t.id}')">Delete</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
   }).join('');
 }
 
@@ -131,6 +131,18 @@ async function dispatchTaskToAgent(id) {
   const d = await r.json();
   if (d.error) alert(d.error);
   await loadTasks();
+}
+
+function viewTaskResult(id) {
+  const t = tasks.find((x) => x.id === id);
+  if (!t) return alert('Task not found');
+  const content = t.result || t.dispatchError || 'No result yet. Dispatch first.';
+  $('viewer').textContent = content;
+  $('editor').value = content;
+  $('editingPath').textContent = `task:${id}`;
+  $('editor').style.display = 'none';
+  $('viewer').style.display = 'block';
+  switchPanel('viewer');
 }
 
 async function loadResearchRequests() {
@@ -249,4 +261,4 @@ const ws = new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.type === 'dashboard') renderDashboard(m.data); };
 
 refresh();
-window.viewFile = viewFile; window.editFile = editFile; window.approveOne = approveOne; window.runCron = runCron; window.toggleHeartbeat = toggleHeartbeat; window.moveTask = moveTask; window.dispatchTaskToAgent = dispatchTaskToAgent; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;
+window.viewFile = viewFile; window.editFile = editFile; window.approveOne = approveOne; window.runCron = runCron; window.toggleHeartbeat = toggleHeartbeat; window.moveTask = moveTask; window.dispatchTaskToAgent = dispatchTaskToAgent; window.viewTaskResult = viewTaskResult; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;

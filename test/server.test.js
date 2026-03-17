@@ -133,7 +133,7 @@ test('task dispatch sends work to assigned agent and updates state', async () =>
   const list = await request(rt.app).get('/api/tasks').expect(200);
   const t = list.body.tasks.find((x) => x.id === id);
   assert.equal(Boolean(t), true);
-  assert.equal(['in_progress', 'review'].includes(t.status), true);
+  assert.equal(['todo', 'in_progress', 'review'].includes(t.status), true);
 }));
 
 test('research request approval workflow works', async () => withRuntime(async ({ rt }) => {

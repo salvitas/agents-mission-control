@@ -585,6 +585,7 @@ async function createRuntime(config = {}) {
       const i = tasks.findIndex((t) => t.id === id);
       if (i < 0) return res.status(404).json({ error: 'Task not found' });
       const patch = req.body || {};
+      const prevTask = { ...tasks[i] };
       const nextTask = { ...tasks[i] };
       if (patch.title !== undefined) nextTask.title = String(patch.title).trim().slice(0, 160);
       if (patch.agentId !== undefined) nextTask.agentId = String(patch.agentId).trim().slice(0, 80);
@@ -600,7 +601,8 @@ async function createRuntime(config = {}) {
       tasks[i] = nextTask;
       await writeTasks(tasks);
       await appendAudit({ type: 'task_update', taskId: id, actor: req.ip });
-      if (/^lucy-/i.test(nextTask.agentId) && (nextTask.status === 'todo' || patch.dispatchNow === true)) {
+      const agentChanged = prevTask.agentId !== nextTask.agentId;
+      if (/^lucy-/i.test(nextTask.agentId) && (nextTask.status === 'todo' || patch.dispatchNow === true || agentChanged)) {
         dispatchTask(id, req.ip).catch(() => {});
       }
       res.json({ ok: true, task: nextTask });
