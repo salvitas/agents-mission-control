@@ -42,7 +42,17 @@ function renderDashboard(d) {
   const agents = d.status?.agents?.agents || [];
   const hb = new Map((d.status?.heartbeat?.agents || []).map((x) => [x.agentId, x]));
   const ai = new Map((d.agentInsights || []).map((x) => [x.agentId, x]));
-  $('stats').innerHTML = [['Agents', agents.length], ['Sessions', d.status?.sessions?.count ?? 'n/a'], ['Cron jobs', d.cronJobs?.length ?? 0], ['Artifacts', d.artifacts?.length ?? 0], ['Adapters', d.adaptersCount ?? 0]].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  const gw = d.status?.gateway;
+  const gwIcon = gw?.reachable ? '<i class="material-icons tiny" style="color:#90e0ad">cloud_done</i>' : '<i class="material-icons tiny" style="color:#f1abab">cloud_off</i>';
+  $('stats').innerHTML = [
+    ['Agents', agents.length],
+    ['Sessions', d.status?.sessions?.count ?? 'n/a'],
+    ['Cron jobs', d.cronJobs?.length ?? 0],
+    ['Tokens today', d.tokenUsage?.today ?? 0],
+    ['Tokens 7d', d.tokenUsage?.last7d ?? 0],
+    ['Tokens 30d', d.tokenUsage?.last30d ?? 0],
+    ['Gateway', `${gwIcon} ${gw?.reachable ? 'online' : 'offline'}`],
+  ].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
   $('agents').innerHTML = agents.map((a) => {
     const h = hb.get(a.id);
     const insight = ai.get(a.id) || { cronCount: 0, coreFiles: [], memoryFiles: [], skills: [] };
@@ -53,7 +63,10 @@ function renderDashboard(d) {
       .map((f) => `<li>${f.name} <button class="file-action btn-flat btn-small" data-action="view" data-path="${encodeURIComponent(f.relPath)}" title="View"><i class="material-icons tiny">visibility</i></button> <button class="file-action btn-flat btn-small" data-action="edit" data-path="${encodeURIComponent(f.relPath)}" title="Edit"><i class="material-icons tiny">edit</i></button></li>`)
       .join('');
     const skills = (insight.skills || []).map((s) => s.name).join(', ') || 'none';
-    return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Skills: ${skills}<br/>Markdown files: ${((insight.coreFiles||[]).length + (insight.memoryFiles||[]).length)}`, `<ul class="meta">${mdList || '<li>No markdown files</li>'}</ul>`);
+    const hbBtn = insight.heartbeatConfigured
+      ? `<button class="btn-small red darken-2" onclick="toggleHeartbeat('${a.id}','disable')"><i class="material-icons tiny">pause</i></button>`
+      : `<button class="btn-small green darken-2" onclick="toggleHeartbeat('${a.id}','enable')"><i class="material-icons tiny">play_arrow</i></button>`;
+    return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Skills: ${skills}<br/>Markdown files: ${(insight.coreFiles||[]).length + (insight.memoryFiles||[]).length}<br/>Heartbeat tasks: ${insight.heartbeatConfigured ? 'configured' : 'disabled'}`, `${hbBtn}<ul class="meta">${mdList || '<li>No markdown files</li>'}</ul>`);
   }).join('');
   $('cronJobs').innerHTML = (d.cronJobs || []).map((j) => card(`${j.name} (${j.id})`, `Agent: ${j.agentId}<br/>Schedule: ${j.schedule?.expr || 'n/a'}<br/>Last: ${j.state?.lastRunStatus || 'n/a'} · ${fmtAge(Date.now() - (j.state?.lastRunAtMs || Date.now()))} ago`, `<button onclick="runCron('${j.id}')">Run now</button>`)).join('') || '<div class="meta">No cron jobs.</div>';
   const queues = (d.artifacts || []).filter((a) => a.type === 'queue');
@@ -190,7 +203,8 @@ async function saveEditedFile() {
 
 async function approveOne(p) { ensureToken(); const rel = decodeURIComponent(p); await fetch('/api/approve', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ path: rel }) }); await refresh(); await viewFile(p); }
 async function runCron(id) { ensureToken(); const r = await fetch('/api/cron/run', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ id }) }); const d = await r.json(); if (d.error) alert(d.error); else alert('Cron run triggered'); await refresh(); }
-async function loadAudit() { const r = await fetch('/api/audit?limit=40'); const d = await r.json(); $('audit').innerHTML = (d.events || []).map((e) => card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `Path/ID: ${e.path || e.id || e.taskId || '-'}<br/>By: ${e.actor || 'dashboard'}`)).join('') || '<div class="meta">No audit events yet.</div>'; }
+async function toggleHeartbeat(agentId, mode) { ensureToken(); const r = await fetch(`/api/heartbeat/${encodeURIComponent(agentId)}/${encodeURIComponent(mode)}`, { method: 'POST', headers: authHeaders() }); const d = await r.json(); if (d.error) alert(d.error); await refresh(); }
+async function loadAudit() { const r = await fetch('/api/audit?limit=40'); const d = await r.json(); $('audit').innerHTML = (d.events || []).map((e) => card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `Path/ID: ${e.path || e.id || e.taskId || e.agentId || '-'}<br/>By: ${e.actor || 'dashboard'}`)).join('') || '<div class="meta">No audit events yet.</div>'; }
 async function searchTranscripts() { const q = $('q').value || ''; const agentId = $('agentFilter').value || ''; const r = await fetch(`/api/transcripts?q=${encodeURIComponent(q)}&agentId=${encodeURIComponent(agentId)}&limit=80`); const d = await r.json(); $('transcripts').innerHTML = (d.results || []).map((x) => card(`${x.agentId} · ${x.role}`, `${x.timestamp}<br/>session: ${x.sessionId}<br/><br/>${x.text}`)).join('') || '<div class="meta">No transcript matches.</div>'; }
 
 document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => switchPanel(b.dataset.tab)));
@@ -217,4 +231,4 @@ const ws = new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.type === 'dashboard') renderDashboard(m.data); };
 
 refresh();
-window.viewFile = viewFile; window.editFile = editFile; window.approveOne = approveOne; window.runCron = runCron; window.moveTask = moveTask; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;
+window.viewFile = viewFile; window.editFile = editFile; window.approveOne = approveOne; window.runCron = runCron; window.toggleHeartbeat = toggleHeartbeat; window.moveTask = moveTask; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;

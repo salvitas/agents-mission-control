@@ -198,13 +198,15 @@ async function createRuntime(config = {}) {
   }
 
   async function buildDataset() {
-    const [statusOut, cronOut, adapters] = await Promise.all([
+    const [statusOut, cronOut, sessionsOut, adapters] = await Promise.all([
       execFileP('openclaw', ['status', '--json'], { cwd: cfg.workspace }),
       execFileP('openclaw', ['cron', 'list', '--json'], { cwd: cfg.workspace }),
+      execFileP('openclaw', ['sessions', '--all-agents', '--json'], { cwd: cfg.workspace }),
       readAdapters(),
     ]);
     const status = parseJsonFromNoisyOutput(statusOut.stdout);
     const cron = safeJson(cronOut.stdout, { jobs: [] });
+    const sessions = safeJson(sessionsOut.stdout, { sessions: [] });
     const files = await helpers.listFilesRecursive(helpers.AGENTS_DIR);
     const artifacts = files.map(helpers.classifyArtifact).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 700);
     for (const art of artifacts) {
@@ -250,16 +252,34 @@ async function createRuntime(config = {}) {
       }
 
       const skills = await readAgentSkills(a.id, workspaceDir).catch(() => []);
+      const heartbeatPath = relBase !== null ? path.join(workspaceDir, 'HEARTBEAT.md') : null;
+      const heartbeatText = heartbeatPath ? await fsp.readFile(heartbeatPath, 'utf8').catch(() => '') : '';
+      const heartbeatConfigured = Boolean(String(heartbeatText || '').trim().replace(/^#.*$/gm, '').trim());
+
       agentInsights.push({
         agentId: a.id,
         cronCount: cronByAgent[a.id] || 0,
         coreFiles,
         memoryFiles,
         skills,
+        heartbeatConfigured,
       });
     }
 
-    return { now: Date.now(), workspace: cfg.workspace, status, cronJobs: cron.jobs || [], artifacts, adaptersCount: adapters.length, agentInsights };
+    const nowMs = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const sums = { today: 0, last7d: 0, last30d: 0 };
+    for (const s of (sessions.sessions || [])) {
+      const updatedAt = Number(s.updatedAt || 0);
+      const t = Number(s.totalTokens || 0);
+      if (!updatedAt || !Number.isFinite(t)) continue;
+      const age = nowMs - updatedAt;
+      if (age <= day) sums.today += t;
+      if (age <= 7 * day) sums.last7d += t;
+      if (age <= 30 * day) sums.last30d += t;
+    }
+
+    return { now: nowMs, workspace: cfg.workspace, status, cronJobs: cron.jobs || [], artifacts, adaptersCount: adapters.length, agentInsights, tokenUsage: sums };
   }
 
   async function appendAudit(event) {
@@ -465,6 +485,33 @@ async function createRuntime(config = {}) {
       await writeResearchRequests(rows);
       await appendAudit({ type: 'research_request_approve', requestId: id, actor: req.ip, agentId: 'lucy-research' });
       res.json({ ok: true, request: rows[i] });
+    } catch (e) { next(e); }
+  });
+
+  app.post('/api/heartbeat/:agentId/:mode', requireToken, async (req, res, next) => {
+    try {
+      const agentId = String(req.params.agentId || '');
+      const mode = String(req.params.mode || '');
+      if (!/^lucy-[a-z0-9-]+$/i.test(agentId)) return res.status(400).json({ error: 'Invalid agent id' });
+      if (!['enable', 'disable'].includes(mode)) return res.status(400).json({ error: 'Invalid mode' });
+      const slug = agentId.replace(/^lucy-/, '');
+      const hbPath = path.join(cfg.workspace, 'agents', slug, 'HEARTBEAT.md');
+      await fsp.mkdir(path.dirname(hbPath), { recursive: true });
+
+      if (mode === 'disable') {
+        const existing = await fsp.readFile(hbPath, 'utf8').catch(() => '');
+        if (existing && String(existing).trim()) {
+          await fsp.writeFile(`${hbPath}.bak`, existing, 'utf8').catch(() => {});
+        }
+        await fsp.writeFile(hbPath, '# HEARTBEAT.md\n\n# Disabled from Mission Control\n', 'utf8');
+      } else {
+        const backup = await fsp.readFile(`${hbPath}.bak`, 'utf8').catch(() => '');
+        await fsp.writeFile(hbPath, backup || '# HEARTBEAT.md\n\n# Add tasks below when you want periodic checks.\n', 'utf8');
+      }
+
+      await appendAudit({ type: `heartbeat_${mode}`, agentId, actor: req.ip });
+      await broadcastDashboard();
+      res.json({ ok: true });
     } catch (e) { next(e); }
   });
 

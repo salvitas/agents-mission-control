@@ -42,6 +42,10 @@ if [ "$1" = "cron" ] && [ "$2" = "run" ]; then
   echo '{"ok":true}'
   exit 0
 fi
+if [ "$1" = "sessions" ]; then
+  echo '{"sessions":[{"updatedAt":4102444800000,"totalTokens":100},{"updatedAt":4102358400000,"totalTokens":50}]}'
+  exit 0
+fi
 if [ "$1" = "agent" ]; then
   echo '{"reply":"research done","ok":true}'
   exit 0
@@ -76,6 +80,9 @@ test('dashboard loads, queue detected, and agent insights include cron counts', 
   assert.equal(Array.isArray(res.body.agentInsights), true);
   assert.equal(res.body.agentInsights[0].cronCount, 1);
   assert.equal((res.body.agentInsights[0].skills || []).some((s) => s.name === 'research-suite'), true);
+  assert.equal(typeof res.body.tokenUsage.today, 'number');
+  assert.equal(typeof res.body.tokenUsage.last7d, 'number');
+  assert.equal(typeof res.body.tokenUsage.last30d, 'number');
 }));
 
 test('approve endpoint requires token and updates markdown', async () => withRuntime(async ({ rt, fx }) => {
@@ -94,6 +101,15 @@ test('markdown file save requires auth and persists edits', async () => withRunt
   await request(rt.app).post('/api/file/save').set('x-mission-token', 'tkn').send({ path: 'SOUL.md', content: '# changed\n' }).expect(200);
   const saved = await fsp.readFile(path.join(fx.workspace, 'SOUL.md'), 'utf8');
   assert.equal(saved, '# changed\n');
+}));
+
+test('heartbeat toggle endpoint updates agent HEARTBEAT.md', async () => withRuntime(async ({ rt, fx }) => {
+  await request(rt.app).post('/api/heartbeat/lucy-dev/disable').send({}).expect(401);
+  await request(rt.app).post('/api/heartbeat/lucy-dev/disable').set('x-mission-token', 'tkn').send({}).expect(200);
+  const p = path.join(fx.workspace, 'agents', 'dev', 'HEARTBEAT.md');
+  const txt = await fsp.readFile(p, 'utf8');
+  assert.match(txt, /Disabled from Mission Control/);
+  await request(rt.app).post('/api/heartbeat/lucy-dev/enable').set('x-mission-token', 'tkn').send({}).expect(200);
 }));
 
 test('tasks CRUD with auth works', async () => withRuntime(async ({ rt }) => {
