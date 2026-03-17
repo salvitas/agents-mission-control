@@ -5,6 +5,8 @@ const STATUS = ['todo', 'in_progress', 'review', 'done'];
 let token = localStorage.getItem('missionToken') || '';
 let tasks = [];
 let selectedTaskTab = 'all';
+let currentFilePath = '';
+let editMode = false;
 
 function authHeaders() {
   const h = { 'Content-Type': 'application/json' };
@@ -45,10 +47,13 @@ function renderDashboard(d) {
     const h = hb.get(a.id);
     const insight = ai.get(a.id) || { cronCount: 0, coreFiles: [], memoryFiles: [], skills: [] };
     const badge = h?.enabled ? '<span class="badge ok">heartbeat on</span>' : '<span class="badge off">heartbeat off</span>';
-    const coreActions = insight.coreFiles.slice(0, 12).map((f) => `<button onclick="viewFile('${encodeURIComponent(f.relPath)}')">${f.name}</button>`).join('');
-    const memActions = insight.memoryFiles.slice(0, 20).map((f) => `<button onclick="viewFile('${encodeURIComponent(f.relPath)}')">${f.name}</button>`).join('');
+    const mdList = [...(insight.coreFiles || []), ...(insight.memoryFiles || [])]
+      .filter((f) => f.name.toLowerCase().endsWith('.md'))
+      .slice(0, 40)
+      .map((f) => `<li>${f.name} <button onclick="viewFile('${encodeURIComponent(f.relPath)}')">View</button> <button onclick="editFile('${encodeURIComponent(f.relPath)}')">Edit</button></li>`)
+      .join('');
     const skills = (insight.skills || []).map((s) => s.name).join(', ') || 'none';
-    return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Skills: ${skills}<br/>Memory files: ${insight.memoryFiles.length}`, `${coreActions}${memActions}`);
+    return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Skills: ${skills}<br/>Markdown files: ${((insight.coreFiles||[]).length + (insight.memoryFiles||[]).length)}`, `<ul class="meta">${mdList || '<li>No markdown files</li>'}</ul>`);
   }).join('');
   $('cronJobs').innerHTML = (d.cronJobs || []).map((j) => card(`${j.name} (${j.id})`, `Agent: ${j.agentId}<br/>Schedule: ${j.schedule?.expr || 'n/a'}<br/>Last: ${j.state?.lastRunStatus || 'n/a'} · ${fmtAge(Date.now() - (j.state?.lastRunAtMs || Date.now()))} ago`, `<button onclick="runCron('${j.id}')">Run now</button>`)).join('') || '<div class="meta">No cron jobs.</div>';
   const queues = (d.artifacts || []).filter((a) => a.type === 'queue');
@@ -151,7 +156,38 @@ function setTaskTab(tab) {
   renderTasks();
 }
 
-async function viewFile(p) { const rel = decodeURIComponent(p); const r = await fetch(`/api/file?path=${encodeURIComponent(rel)}`); const d = await r.json(); $('viewer').textContent = d.error ? `Error: ${d.error}` : d.content; }
+async function viewFile(p) {
+  const rel = decodeURIComponent(p);
+  currentFilePath = rel;
+  const r = await fetch(`/api/file?path=${encodeURIComponent(rel)}`);
+  const d = await r.json();
+  const txt = d.error ? `Error: ${d.error}` : d.content;
+  $('viewer').textContent = txt;
+  $('editor').value = txt;
+  $('editingPath').textContent = rel;
+  editMode = false;
+  $('editor').style.display = 'none';
+  $('viewer').style.display = 'block';
+  switchPanel('viewer');
+}
+
+async function editFile(p) {
+  await viewFile(p);
+  editMode = true;
+  $('editor').style.display = 'block';
+  $('viewer').style.display = 'none';
+}
+
+async function saveEditedFile() {
+  ensureToken();
+  if (!currentFilePath) return alert('No file selected');
+  const r = await fetch('/api/file/save', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ path: currentFilePath, content: $('editor').value }) });
+  const d = await r.json();
+  if (d.error) return alert(d.error);
+  await viewFile(encodeURIComponent(currentFilePath));
+  await refresh();
+}
+
 async function approveOne(p) { ensureToken(); const rel = decodeURIComponent(p); await fetch('/api/approve', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ path: rel }) }); await refresh(); await viewFile(p); }
 async function runCron(id) { ensureToken(); const r = await fetch('/api/cron/run', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ id }) }); const d = await r.json(); if (d.error) alert(d.error); else alert('Cron run triggered'); await refresh(); }
 async function loadAudit() { const r = await fetch('/api/audit?limit=40'); const d = await r.json(); $('audit').innerHTML = (d.events || []).map((e) => card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `Path/ID: ${e.path || e.id || e.taskId || '-'}<br/>By: ${e.actor || 'dashboard'}`)).join('') || '<div class="meta">No audit events yet.</div>'; }
@@ -162,8 +198,15 @@ $('refreshBtn').addEventListener('click', refresh);
 $('searchBtn').addEventListener('click', searchTranscripts);
 $('addTaskBtn').addEventListener('click', addTask);
 $('addResearchBtn').addEventListener('click', addResearchRequest);
+$('editModeBtn').addEventListener('click', () => {
+  if (!currentFilePath) return alert('Open a markdown file first');
+  editMode = !editMode;
+  $('editor').style.display = editMode ? 'block' : 'none';
+  $('viewer').style.display = editMode ? 'none' : 'block';
+});
+$('saveEditBtn').addEventListener('click', saveEditedFile);
 const ws = new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.type === 'dashboard') renderDashboard(m.data); };
 
 refresh();
-window.viewFile = viewFile; window.approveOne = approveOne; window.runCron = runCron; window.moveTask = moveTask; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;
+window.viewFile = viewFile; window.editFile = editFile; window.approveOne = approveOne; window.runCron = runCron; window.moveTask = moveTask; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;

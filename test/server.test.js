@@ -14,9 +14,9 @@ async function setupFixture() {
   const bin = path.join(root, 'bin');
   await fsp.mkdir(path.join(workspace, 'agents', 'dev'), { recursive: true });
   await fsp.mkdir(path.join(workspace, 'memory'), { recursive: true });
-  await fsp.mkdir(path.join(workspace, 'skills', 'local'), { recursive: true });
+  await fsp.mkdir(path.join(workspace, 'agents', 'dev', 'skills', 'local'), { recursive: true });
   await fsp.mkdir(path.join(workspace, 'skill-src', 'research-suite'), { recursive: true });
-  await fsp.symlink(path.join(workspace, 'skill-src', 'research-suite'), path.join(workspace, 'skills', 'local', 'research-suite'));
+  await fsp.symlink(path.join(workspace, 'skill-src', 'research-suite'), path.join(workspace, 'agents', 'dev', 'skills', 'local', 'research-suite'));
 
   await fsp.mkdir(path.join(state, 'agents', 'lucy-dev', 'sessions'), { recursive: true });
   await fsp.mkdir(bin, { recursive: true });
@@ -87,6 +87,13 @@ test('approve endpoint requires token and updates markdown', async () => withRun
 
 test('cron run rejects invalid id format', async () => withRuntime(async ({ rt }) => {
   await request(rt.app).post('/api/cron/run').set('x-mission-token', 'tkn').send({ id: 'not-a-uuid' }).expect(400);
+}));
+
+test('markdown file save requires auth and persists edits', async () => withRuntime(async ({ rt, fx }) => {
+  await request(rt.app).post('/api/file/save').send({ path: 'SOUL.md', content: '# changed' }).expect(401);
+  await request(rt.app).post('/api/file/save').set('x-mission-token', 'tkn').send({ path: 'SOUL.md', content: '# changed\n' }).expect(200);
+  const saved = await fsp.readFile(path.join(fx.workspace, 'SOUL.md'), 'utf8');
+  assert.equal(saved, '# changed\n');
 }));
 
 test('tasks CRUD with auth works', async () => withRuntime(async ({ rt }) => {

@@ -175,16 +175,24 @@ async function createRuntime(config = {}) {
     return { pending: null, done: null, total: null, adapter: ad.name };
   }
 
-  async function readAgentSkills(workspaceDir) {
-    const root = path.join(workspaceDir, 'skills', 'local');
-    const entries = await fsp.readdir(root, { withFileTypes: true }).catch(() => []);
+  async function readAgentSkills(agentId, workspaceDir) {
+    const slug = String(agentId || '').replace(/^lucy-/, '');
+    const roots = [
+      path.join(cfg.workspace, 'agents', slug, 'skills', 'local'),
+      path.join(workspaceDir, 'skills', 'local'),
+    ];
+    const seen = new Set();
     const skills = [];
-    for (const e of entries) {
-      if (!e.name || e.name.startsWith('.')) continue;
-      const full = path.join(root, e.name);
-      let target = null;
-      try { if ((await fsp.lstat(full)).isSymbolicLink()) target = await fsp.readlink(full); } catch {}
-      skills.push({ name: e.name, target });
+    for (const root of roots) {
+      const entries = await fsp.readdir(root, { withFileTypes: true }).catch(() => []);
+      for (const e of entries) {
+        if (!e.name || e.name.startsWith('.') || seen.has(e.name)) continue;
+        seen.add(e.name);
+        const full = path.join(root, e.name);
+        let target = null;
+        try { if ((await fsp.lstat(full)).isSymbolicLink()) target = await fsp.readlink(full); } catch {}
+        skills.push({ name: e.name, target, source: root });
+      }
     }
     return skills;
   }
@@ -241,7 +249,7 @@ async function createRuntime(config = {}) {
           .map((e) => ({ name: e.name, relPath: path.join(relBase, 'memory', e.name) }));
       }
 
-      const skills = await readAgentSkills(workspaceDir).catch(() => []);
+      const skills = await readAgentSkills(a.id, workspaceDir).catch(() => []);
       agentInsights.push({
         agentId: a.id,
         cronCount: cronByAgent[a.id] || 0,
@@ -383,6 +391,21 @@ async function createRuntime(config = {}) {
     } catch (e) { next(e); }
   });
   app.get('/api/audit', async (req, res, next) => { try { res.json({ events: await readAudit(req.query.limit) }); } catch (e) { next(e); } });
+
+  app.post('/api/file/save', requireToken, async (req, res, next) => {
+    try {
+      const rel = String(req.body.path || '');
+      const content = String(req.body.content || '');
+      const abs = helpers.ensureSafePath(rel);
+      if (path.extname(abs).toLowerCase() !== '.md') return res.status(400).json({ error: 'Only .md editing is supported' });
+      if (content.length > 1024 * 1024) return res.status(413).json({ error: 'Content too large' });
+      await fsp.writeFile(abs, content, 'utf8');
+      await appendAudit({ type: 'md_edit', path: rel, actor: req.ip });
+      await broadcastDashboard();
+      res.json({ ok: true });
+    } catch (e) { next(e); }
+  });
+
   app.get('/api/transcripts', async (req, res, next) => {
     try {
       const results = await searchTranscripts({ agentId: String(req.query.agentId || ''), q: String(req.query.q || ''), limit: Number(req.query.limit || 60) });
