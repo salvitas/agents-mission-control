@@ -43,7 +43,7 @@ function renderDashboard(d) {
   const hb = new Map((d.status?.heartbeat?.agents || []).map((x) => [x.agentId, x]));
   const ai = new Map((d.agentInsights || []).map((x) => [x.agentId, x]));
   const gw = d.status?.gateway;
-  const gwIcon = gw?.reachable ? '<i class="material-icons tiny" style="color:#90e0ad">cloud_done</i>' : '<i class="material-icons tiny" style="color:#f1abab">cloud_off</i>';
+  const gwIcon = gw?.reachable ? '<span style="color:#90e0ad">●</span>' : '<span style="color:#f1abab">●</span>';
   $('stats').innerHTML = [
     ['Agents', agents.length],
     ['Sessions', d.status?.sessions?.count ?? 'n/a'],
@@ -60,12 +60,12 @@ function renderDashboard(d) {
     const mdList = [...(insight.coreFiles || []), ...(insight.memoryFiles || [])]
       .filter((f) => f.name.toLowerCase().endsWith('.md'))
       .slice(0, 40)
-      .map((f) => `<li>${f.name} <button class="file-action btn-flat btn-small" data-action="view" data-path="${encodeURIComponent(f.relPath)}" title="View"><i class="material-icons tiny">visibility</i></button> <button class="file-action btn-flat btn-small" data-action="edit" data-path="${encodeURIComponent(f.relPath)}" title="Edit"><i class="material-icons tiny">edit</i></button></li>`)
+      .map((f) => `<li>${f.name} <button class="file-action btn-flat btn-small" data-action="view" data-path="${encodeURIComponent(f.relPath)}" title="View">👁</button> <button class="file-action btn-flat btn-small" data-action="edit" data-path="${encodeURIComponent(f.relPath)}" title="Edit">✎</button></li>`)
       .join('');
     const skills = (insight.skills || []).map((s) => s.name).join(', ') || 'none';
     const hbBtn = insight.heartbeatConfigured
-      ? `<button class="btn-small red darken-2" onclick="toggleHeartbeat('${a.id}','disable')"><i class="material-icons tiny">pause</i></button>`
-      : `<button class="btn-small green darken-2" onclick="toggleHeartbeat('${a.id}','enable')"><i class="material-icons tiny">play_arrow</i></button>`;
+      ? `<button class="btn-small red darken-2" onclick="toggleHeartbeat('${a.id}','disable')" title="Disable heartbeat">⏸</button>`
+      : `<button class="btn-small green darken-2" onclick="toggleHeartbeat('${a.id}','enable')" title="Enable heartbeat">▶</button>`;
     return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Skills: ${skills}<br/>Markdown files: ${(insight.coreFiles||[]).length + (insight.memoryFiles||[]).length}<br/>Heartbeat tasks: ${insight.heartbeatConfigured ? 'configured' : 'disabled'}`, `${hbBtn}<ul class="meta">${mdList || '<li>No markdown files</li>'}</ul>`);
   }).join('');
   $('cronJobs').innerHTML = (d.cronJobs || []).map((j) => card(`${j.name} (${j.id})`, `Agent: ${j.agentId}<br/>Schedule: ${j.schedule?.expr || 'n/a'}<br/>Last: ${j.state?.lastRunStatus || 'n/a'} · ${fmtAge(Date.now() - (j.state?.lastRunAtMs || Date.now()))} ago`, `<button onclick="runCron('${j.id}')">Run now</button>`)).join('') || '<div class="meta">No cron jobs.</div>';
