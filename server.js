@@ -351,6 +351,53 @@ async function createRuntime(config = {}) {
     await fsp.writeFile(cfg.tasksPath, JSON.stringify(tasks, null, 2));
   }
 
+  async function updateTask(taskId, updater) {
+    const tasks = await readTasks();
+    const i = tasks.findIndex((t) => t.id === taskId);
+    if (i < 0) return null;
+    const next = updater({ ...tasks[i] });
+    tasks[i] = { ...next, updatedAt: new Date().toISOString() };
+    await writeTasks(tasks);
+    return tasks[i];
+  }
+
+  function buildTaskPrompt(task) {
+    return [
+      `You are assigned this task from Mission Control.`,
+      `Task title: ${task.title}`,
+      `Tab: ${task.tab}`,
+      `Priority: ${task.priority || 'normal'}`,
+      task.notes ? `Notes:\n${task.notes}` : '',
+      '',
+      'Please execute it now and return:',
+      '1) What you did',
+      '2) Output/results',
+      '3) Any blockers',
+      '4) Next step suggestion',
+    ].filter(Boolean).join('\n');
+  }
+
+  async function dispatchTask(taskId, actor = 'system') {
+    const current = await updateTask(taskId, (t) => ({ ...t, status: 'in_progress', dispatchState: 'running' }));
+    if (!current) return;
+    const assigned = String(current.agentId || '');
+    if (!/^lucy-[a-z0-9-]+$/i.test(assigned)) {
+      await updateTask(taskId, (t) => ({ ...t, dispatchState: 'error', dispatchError: 'Invalid or unassigned agentId' }));
+      return;
+    }
+
+    try {
+      const out = await execFileP('openclaw', ['agent', '--agent', assigned, '--message', buildTaskPrompt(current), '--json', '--timeout', '240'], { cwd: cfg.workspace });
+      await updateTask(taskId, (t) => ({ ...t, status: 'review', dispatchState: 'done', result: out.stdout.slice(0, 12000) }));
+      await appendAudit({ type: 'task_dispatch', taskId, actor, agentId: assigned, ok: true });
+    } catch (e) {
+      await updateTask(taskId, (t) => ({ ...t, dispatchState: 'error', dispatchError: String(e.message || 'dispatch failed') }));
+      await appendAudit({ type: 'task_dispatch', taskId, actor, agentId: assigned, ok: false, error: String(e.message || 'dispatch failed') });
+    } finally {
+      await broadcastDashboard();
+    }
+  }
+
   const RESEARCH_CAPABILITIES = ['web_research', 'compare_options', 'market_scan', 'fact_check'];
   function sanitizeResearchInput(input = {}) {
     const capability = String(input.capability || '').trim();
@@ -519,10 +566,13 @@ async function createRuntime(config = {}) {
     try {
       const task = sanitizeTaskInput(req.body || {});
       const tasks = await readTasks();
-      const created = { id: crypto.randomUUID(), ...task, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      const created = { id: crypto.randomUUID(), ...task, dispatchState: 'idle', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
       tasks.unshift(created);
       await writeTasks(tasks);
       await appendAudit({ type: 'task_create', taskId: created.id, actor: req.ip, agentId: created.agentId, tab: created.tab });
+      if (/^lucy-/i.test(created.agentId)) {
+        dispatchTask(created.id, req.ip).catch(() => {});
+      }
       res.json({ ok: true, task: created });
     } catch (e) { next(e); }
   });
@@ -550,6 +600,9 @@ async function createRuntime(config = {}) {
       tasks[i] = nextTask;
       await writeTasks(tasks);
       await appendAudit({ type: 'task_update', taskId: id, actor: req.ip });
+      if (/^lucy-/i.test(nextTask.agentId) && (nextTask.status === 'todo' || patch.dispatchNow === true)) {
+        dispatchTask(id, req.ip).catch(() => {});
+      }
       res.json({ ok: true, task: nextTask });
     } catch (e) { next(e); }
   });
@@ -563,6 +616,16 @@ async function createRuntime(config = {}) {
       await writeTasks(nextTasks);
       await appendAudit({ type: 'task_delete', taskId: id, actor: req.ip });
       res.json({ ok: true });
+    } catch (e) { next(e); }
+  });
+
+  app.post('/api/tasks/:id/dispatch', requireToken, async (req, res, next) => {
+    try {
+      const id = String(req.params.id || '');
+      const task = await updateTask(id, (t) => ({ ...t, dispatchState: 'queued' }));
+      if (!task) return res.status(404).json({ error: 'Task not found' });
+      dispatchTask(id, req.ip).catch(() => {});
+      res.json({ ok: true, task });
     } catch (e) { next(e); }
   });
 

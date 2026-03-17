@@ -38,7 +38,7 @@ function renderTasks() {
   $('kanban').innerHTML = STATUS.map((s) => {
     const label = s.replace('_', ' ').toUpperCase();
     const colTasks = filtered.filter((t) => t.status === s);
-    return `<div class="col"><h3>${label} (${colTasks.length})</h3>${colTasks.map((t) => `<div class="task"><div><strong>${t.title}</strong></div><small>${t.agentId} · ${t.tab}</small><div class="actions"><button onclick="moveTask('${t.id}','${s}')">Next</button><button onclick="deleteTask('${t.id}')">Delete</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
+    return `<div class="col"><h3>${label} (${colTasks.length})</h3>${colTasks.map((t) => `<div class="task"><div><strong>${t.title}</strong></div><small>${t.agentId} · ${t.tab}</small><div class="meta">Dispatch: ${t.dispatchState || 'idle'}${t.dispatchError ? `<br/>Err: ${t.dispatchError}` : ''}</div><div class="actions"><button onclick="moveTask('${t.id}','${s}')">Next</button><button onclick="dispatchTaskToAgent('${t.id}')">Send</button><button onclick="deleteTask('${t.id}')">Delete</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
   }).join('');
 }
 
@@ -122,6 +122,14 @@ async function moveTask(id, current) {
 async function deleteTask(id) {
   ensureToken();
   await fetch(`/api/tasks/${encodeURIComponent(id)}`, { method: 'DELETE', headers: authHeaders() });
+  await loadTasks();
+}
+
+async function dispatchTaskToAgent(id) {
+  ensureToken();
+  const r = await fetch(`/api/tasks/${encodeURIComponent(id)}/dispatch`, { method: 'POST', headers: authHeaders() });
+  const d = await r.json();
+  if (d.error) alert(d.error);
   await loadTasks();
 }
 
@@ -241,4 +249,4 @@ const ws = new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.type === 'dashboard') renderDashboard(m.data); };
 
 refresh();
-window.viewFile = viewFile; window.editFile = editFile; window.approveOne = approveOne; window.runCron = runCron; window.toggleHeartbeat = toggleHeartbeat; window.moveTask = moveTask; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;
+window.viewFile = viewFile; window.editFile = editFile; window.approveOne = approveOne; window.runCron = runCron; window.toggleHeartbeat = toggleHeartbeat; window.moveTask = moveTask; window.dispatchTaskToAgent = dispatchTaskToAgent; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;
