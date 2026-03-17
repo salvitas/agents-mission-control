@@ -4,21 +4,23 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Mission Control</title>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="/styles.css"/>
 </head>
-<body>
-  <header>
-    <h1>Mission Control</h1>
-    <div class="row" style="margin:0;align-items:center;">
-      <span id="gatewayDot" class="gateway-dot" title="Gateway status"></span>
-      <button id="refreshBtn" class="btn-small blue darken-2">Refresh</button>
+<body class="bg-slate-950 text-slate-100">
+  <header class="sticky top-0 z-10 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+      <h1 class="text-lg font-semibold tracking-tight">Mission Control</h1>
+      <div class="flex items-center gap-3">
+        <span id="gatewayDot" class="gateway-dot" title="Gateway status"></span>
+        <button id="refreshBtn" class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium hover:bg-blue-500">Refresh</button>
+      </div>
     </div>
   </header>
 
-  <main>
-    <div class="tabs">
+  <main class="mx-auto max-w-7xl px-4 py-4">
+    <div class="mb-4 flex flex-wrap gap-2" id="tabsWrap">
       <button class="tab active" data-tab="overview">Overview</button>
       <button class="tab" data-tab="usage">Usage</button>
       <button class="tab" data-tab="operations">Operations</button>
@@ -30,31 +32,30 @@
 
     <section data-panel="overview">
       <section class="grid" id="stats"></section>
-      <section><h2>Agents & Heartbeats</h2><div id="agents" class="cards"></div></section>
+      <section><h2 class="section-title">Agents & Heartbeats</h2><div id="agents" class="cards"></div></section>
     </section>
 
     <section data-panel="usage" hidden>
-      <h2>Token Usage</h2>
+      <h2 class="section-title">Token Usage</h2>
       <div id="usageCards" class="cards"></div>
     </section>
 
     <section data-panel="operations" hidden>
-      <section><h2>Cron Jobs (Run / Retry)</h2><div id="cronJobs" class="cards"></div></section>
-      <section><h2>Queues / Approvals</h2><div id="queues" class="cards"></div></section>
-      <section><h2>Reports / Logs</h2><div id="artifacts" class="cards"></div></section>
-      <section><h2>Lucy Research (approval workflow)</h2>
+      <section><h2 class="section-title">Cron Jobs (Run / Retry)</h2><div id="cronJobs" class="cards"></div></section>
+      <section><h2 class="section-title">Queues / Approvals</h2><div id="queues" class="cards"></div></section>
+      <section><h2 class="section-title">Reports / Logs</h2><div id="artifacts" class="cards"></div></section>
+      <section><h2 class="section-title">Lucy Research (approval workflow)</h2>
         <div class="row"><select id="researchCapability"><option value="web_research">web_research</option><option value="compare_options">compare_options</option><option value="market_scan">market_scan</option><option value="fact_check">fact_check</option></select><input id="researchTopic" placeholder="Research topic"/><input id="researchContext" placeholder="Context / constraints"/><button id="addResearchBtn">Submit request</button></div>
         <div id="researchRequests" class="cards"></div>
       </section>
     </section>
 
-    <section data-panel="tasks" hidden><h2>Kanban</h2><div class="row"><input id="taskTitle" placeholder="Task title"/><input id="taskAgent" placeholder="agent id (e.g. lucy-dev)"/><input id="taskTab" placeholder="feature tab (e.g. growth)"/><button id="addTaskBtn">Add task</button></div><div id="taskTabs" class="row"></div><div class="kanban" id="kanban"></div></section>
-    <section data-panel="transcripts" hidden><h2>Transcript Explorer</h2><div class="row"><input id="q" placeholder="Search transcripts"/><input id="agentFilter" placeholder="agent id (optional)"/><button id="searchBtn">Search</button></div><div id="transcripts" class="cards"></div></section>
-    <section data-panel="audit" hidden><h2>Approval Audit Trail</h2><div id="audit" class="cards"></div></section>
-    <section data-panel="viewer" hidden><h2>Viewer</h2><div class="row"><button id="editModeBtn" class="btn-small blue-grey darken-2">Edit mode</button><button id="saveEditBtn" class="btn-small green darken-2">Save</button><span id="editingPath" class="meta"></span></div><pre id="viewer">Select a file…</pre><textarea id="editor" style="display:none;width:100%;min-height:50vh;background:#0b1322;color:#e8edf6;border:1px solid #253559;border-radius:12px;padding:10px"></textarea></section>
+    <section data-panel="tasks" hidden><h2 class="section-title">Kanban</h2><div class="row"><input id="taskTitle" placeholder="Task title"/><input id="taskAgent" placeholder="agent id (e.g. lucy-dev)"/><input id="taskTab" placeholder="feature tab (e.g. growth)"/><button id="addTaskBtn">Add task</button></div><div id="taskTabs" class="row"></div><div class="kanban" id="kanban"></div></section>
+    <section data-panel="transcripts" hidden><h2 class="section-title">Transcript Explorer</h2><div class="row"><input id="q" placeholder="Search transcripts"/><input id="agentFilter" placeholder="agent id (optional)"/><button id="searchBtn">Search</button></div><div id="transcripts" class="cards"></div></section>
+    <section data-panel="audit" hidden><h2 class="section-title">Approval Audit Trail</h2><div id="audit" class="cards"></div></section>
+    <section data-panel="viewer" hidden><h2 class="section-title">Viewer</h2><div class="row"><button id="editModeBtn">Edit mode</button><button id="saveEditBtn">Save</button><span id="editingPath" class="meta"></span></div><pre id="viewer">Select a file…</pre><textarea id="editor" style="display:none;width:100%;min-height:50vh"></textarea></section>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

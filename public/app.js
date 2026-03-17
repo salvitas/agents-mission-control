@@ -27,6 +27,10 @@ function switchPanel(tab) {
   document.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== tab; });
 }
 
+function refreshIcons() {
+  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+}
+
 function renderTasks() {
   const tabs = ['all', ...Array.from(new Set(tasks.map((t) => t.tab || 'general'))).sort()];
   $('taskTabs').innerHTML = tabs.map((t) => `<button class="pill" onclick="setTaskTab('${encodeURIComponent(t)}')">${t}</button>`).join('');
@@ -65,12 +69,12 @@ function renderDashboard(d) {
     const mdList = [...(insight.coreFiles || []), ...(insight.memoryFiles || [])]
       .filter((f) => f.name.toLowerCase().endsWith('.md'))
       .slice(0, 40)
-      .map((f) => `<li>${f.name} <button class="file-action btn-flat btn-small" data-action="view" data-path="${encodeURIComponent(f.relPath)}" title="View">👁</button> <button class="file-action btn-flat btn-small" data-action="edit" data-path="${encodeURIComponent(f.relPath)}" title="Edit">✎</button></li>`)
+      .map((f) => `<li>${f.name} <button class="file-action" data-action="view" data-path="${encodeURIComponent(f.relPath)}" title="View"><i data-lucide="eye"></i></button> <button class="file-action" data-action="edit" data-path="${encodeURIComponent(f.relPath)}" title="Edit"><i data-lucide="pencil"></i></button></li>`)
       .join('');
     const skills = (insight.skills || []).map((s) => s.name).join(', ') || 'none';
     const hbBtn = insight.heartbeatConfigured
-      ? `<button class="btn-small red darken-2" onclick="toggleHeartbeat('${a.id}','disable')" title="Disable heartbeat">⏸</button>`
-      : `<button class="btn-small green darken-2" onclick="toggleHeartbeat('${a.id}','enable')" title="Enable heartbeat">▶</button>`;
+      ? `<button onclick="toggleHeartbeat('${a.id}','disable')" title="Disable heartbeat"><i data-lucide="pause"></i></button>`
+      : `<button onclick="toggleHeartbeat('${a.id}','enable')" title="Enable heartbeat"><i data-lucide="play"></i></button>`;
     return card(`${a.name} (${a.id})`, `${badge}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron jobs: ${insight.cronCount}<br/>Skills: ${skills}<br/>Markdown files: ${(insight.coreFiles||[]).length + (insight.memoryFiles||[]).length}<br/>Heartbeat tasks: ${insight.heartbeatConfigured ? 'configured' : 'disabled'}`, `${hbBtn}<ul class="meta">${mdList || '<li>No markdown files</li>'}</ul>`);
   }).join('');
   $('cronJobs').innerHTML = (d.cronJobs || []).map((j) => card(`${j.name} (${j.id})`, `Agent: ${j.agentId}<br/>Schedule: ${j.schedule?.expr || 'n/a'}<br/>Last: ${j.state?.lastRunStatus || 'n/a'} · ${fmtAge(Date.now() - (j.state?.lastRunAtMs || Date.now()))} ago`, `<button onclick="runCron('${j.id}')">Run now</button>`)).join('') || '<div class="meta">No cron jobs.</div>';
@@ -82,6 +86,7 @@ function renderDashboard(d) {
     return card(rel, `${b}<br/>Adapter: ${q.queue?.adapter || 'n/a'}<br/>Updated: ${new Date(q.mtimeMs).toLocaleString()}`, `<button onclick="viewFile('${encodeURIComponent(rel)}')">Open</button>${ap}`);
   }).join('') || '<div class="meta">No queue files detected.</div>';
   $('artifacts').innerHTML = (d.artifacts || []).filter((a) => a.type !== 'queue').slice(0, 80).map((a) => card(`${a.type.toUpperCase()} · ${a.rel}`, `Updated: ${new Date(a.mtimeMs).toLocaleString()}<br/>Size: ${a.size} bytes`, `<button onclick="viewFile('${encodeURIComponent(a.rel)}')">Open</button>`)).join('');
+  refreshIcons();
 }
 
 async function loadTasks() {
