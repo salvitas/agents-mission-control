@@ -4,7 +4,6 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Mission Control</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="/styles.css"/>
 </head>
@@ -12,92 +11,46 @@
   <header class="topbar">
     <div>
       <h1>Mission Control</h1>
-      <p>Agent-centered command interface</p>
+      <p>Agent cards + live stream + controls</p>
     </div>
     <div class="top-actions">
       <span id="gatewayDot" class="gateway-dot" title="Gateway"></span>
-      <button id="refreshBtn" class="primary-btn"><i data-lucide="refresh-cw"></i> Refresh</button>
+      <button id="refreshBtn" class="primary-btn">Refresh</button>
     </div>
   </header>
 
-  <main class="layout">
-    <aside class="fleet-panel">
-      <div class="panel-head">
-        <h2><i data-lucide="satellite-dish"></i> Fleet</h2>
-        <span id="fleetCount" class="pill">0</span>
-      </div>
-      <div id="fleetList" class="fleet-list"></div>
-    </aside>
-
-    <section class="agent-workspace">
-      <div class="workspace-head">
-        <h2 id="agentTitle">Select an agent</h2>
-        <div class="workspace-tabs" id="workspaceTabs">
-          <button class="wtab active" data-tab="overview">Overview</button>
-          <button class="wtab" data-tab="tasks">Tasks</button>
-          <button class="wtab" data-tab="control">Control</button>
-          <button class="wtab" data-tab="timeline">Timeline</button>
-          <button class="wtab" data-tab="files">Files</button>
-        </div>
-      </div>
-
-      <section id="pane-overview" class="pane active">
-        <div id="agentKpis" class="kpi-grid"></div>
-        <div id="missionWidgets" class="cards"></div>
-        <div id="agentSummary" class="cards"></div>
-      </section>
-
-      <section id="pane-tasks" class="pane">
-        <div class="row">
-          <input id="taskTitle" placeholder="Task title"/>
-          <input id="taskTab" placeholder="Feature/mission"/>
-          <button id="addTaskBtn">Add task</button>
-        </div>
-        <div id="taskBoard" class="kanban"></div>
-      </section>
-
-      <section id="pane-control" class="pane">
-        <div id="agentControls" class="cards"></div>
-        <div id="cronCards" class="cards"></div>
-      </section>
-
-      <section id="pane-timeline" class="pane">
-        <div class="row">
-          <input id="activityType" placeholder="Filter type"/>
-          <select id="activityWindow">
-            <option value="0">All time</option>
-            <option value="24">Last 24h</option>
-            <option value="168">Last 7d</option>
-            <option value="720">Last 30d</option>
-          </select>
-          <button id="activityFilterBtn">Apply</button>
-        </div>
-        <div id="timelineCards" class="cards"></div>
-      </section>
-
-      <section id="pane-files" class="pane">
-        <div id="fileCards" class="cards"></div>
-      </section>
+  <main class="stack">
+    <section>
+      <h2 class="section-title">Agents</h2>
+      <div id="agentCards" class="cards"></div>
     </section>
 
-    <aside class="viewer-panel">
-      <div class="panel-head"><h2><i data-lucide="panel-right"></i> Viewer</h2><span id="editingPath" class="meta"></span></div>
+    <section class="split">
+      <div>
+        <h2 class="section-title">Live OpenClaw Stream</h2>
+        <div class="row">
+          <select id="logSource"><option value="gateway">gateway.log</option><option value="error">gateway.err.log</option></select>
+          <button id="loadLogsBtn">Reload log</button>
+        </div>
+        <pre id="logStream">Loading logs…</pre>
+      </div>
+      <div>
+        <h2 class="section-title">Generic Actions</h2>
+        <div id="genericActions" class="cards"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">Viewer</h2>
       <div class="row">
         <button id="editModeBtn">Edit</button>
         <button id="saveEditBtn">Save</button>
+        <span id="editingPath" class="meta"></span>
       </div>
-      <pre id="viewer">Select file, task result, or timeline event…</pre>
+      <pre id="viewer">Select an action, file, result, or event…</pre>
       <textarea id="editor"></textarea>
-    </aside>
+    </section>
   </main>
-
-  <nav class="mobile-nav" id="mobileNav">
-    <button data-pane="overview"><i data-lucide="layout-grid"></i><span>Home</span></button>
-    <button data-pane="tasks"><i data-lucide="list-todo"></i><span>Tasks</span></button>
-    <button data-pane="control"><i data-lucide="sliders-horizontal"></i><span>Control</span></button>
-    <button data-pane="timeline"><i data-lucide="timeline"></i><span>Timeline</span></button>
-    <button data-pane="files"><i data-lucide="folder"></i><span>Files</span></button>
-  </nav>
 
   <script src="/app.js"></script>
 </body>

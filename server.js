@@ -15,6 +15,7 @@ const DEFAULTS = {
   auditPath: path.join(__dirname, 'data', 'approval-audit.jsonl'),
   tasksPath: path.join(__dirname, 'data', 'tasks.json'),
   researchPath: path.join(__dirname, 'data', 'research-requests.json'),
+  logsDir: process.env.OPENCLAW_LOGS_DIR || '/Users/salva/.openclaw/logs',
   missionToken: process.env.MISSION_CONTROL_TOKEN || '',
 };
 
@@ -525,6 +526,18 @@ async function createRuntime(config = {}) {
     try {
       const results = await searchTranscripts({ agentId: String(req.query.agentId || ''), q: String(req.query.q || ''), limit: Number(req.query.limit || 60) });
       res.json({ results });
+    } catch (e) { next(e); }
+  });
+
+  app.get('/api/logs/live', async (req, res, next) => {
+    try {
+      const source = String(req.query.source || 'gateway');
+      const lines = Math.max(20, Math.min(800, Number(req.query.lines || 200)));
+      const file = source === 'error' ? 'gateway.err.log' : 'gateway.log';
+      const abs = path.join(cfg.logsDir, file);
+      const txt = await fsp.readFile(abs, 'utf8').catch(() => '');
+      const rows = txt.split(/\r?\n/).filter(Boolean).slice(-lines);
+      res.json({ source, file, lines: rows });
     } catch (e) { next(e); }
   });
 
