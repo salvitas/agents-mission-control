@@ -7,6 +7,7 @@ let tasks = [];
 let selectedTaskTab = 'all';
 let currentFilePath = '';
 let editMode = false;
+let latestActivity = [];
 
 function authHeaders() {
   const h = { 'Content-Type': 'application/json' };
@@ -50,11 +51,13 @@ function renderDashboard(d) {
   const dot = $('gatewayDot');
   if (dot) dot.style.background = gw?.reachable ? '#90e0ad' : '#f1abab';
 
+  const failingTasks = tasks.filter((t) => t.dispatchState === 'error').length;
   $('stats').innerHTML = [
     ['Agents', agents.length],
     ['Sessions', d.status?.sessions?.count ?? 'n/a'],
     ['Cron jobs', d.cronJobs?.length ?? 0],
     ['Artifacts', d.artifacts?.length ?? 0],
+    ['Dispatch failures', failingTasks],
   ].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
 
   $('usageCards').innerHTML = [
@@ -168,6 +171,19 @@ function viewTaskResult(id) {
   switchPanel('viewer');
 }
 
+function viewActivityDetail(idx) {
+  const rows = applyActivityFilters(latestActivity || []);
+  const e = rows[idx];
+  if (!e) return;
+  const txt = JSON.stringify(e, null, 2);
+  $('viewer').textContent = txt;
+  $('editor').value = txt;
+  $('editingPath').textContent = `activity:${idx}`;
+  $('editor').style.display = 'none';
+  $('viewer').style.display = 'block';
+  switchPanel('viewer');
+}
+
 async function loadResearchRequests() {
   const r = await fetch('/api/research/requests');
   const d = await r.json();
@@ -258,7 +274,37 @@ async function approveOne(p) { ensureToken(); const rel = decodeURIComponent(p);
 async function runCron(id) { ensureToken(); const r = await fetch('/api/cron/run', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ id }) }); const d = await r.json(); if (d.error) alert(d.error); else alert('Cron run triggered'); await refresh(); }
 async function toggleHeartbeat(agentId, mode) { ensureToken(); const r = await fetch(`/api/heartbeat/${encodeURIComponent(agentId)}/${encodeURIComponent(mode)}`, { method: 'POST', headers: authHeaders() }); const d = await r.json(); if (d.error) alert(d.error); await refresh(); }
 async function loadAudit() { const r = await fetch('/api/audit?limit=60'); const d = await r.json(); $('audit').innerHTML = (d.events || []).map((e) => card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `Path/ID: ${e.path || e.id || e.taskId || e.agentId || '-'}<br/>By: ${e.actor || 'dashboard'}`)).join('') || '<div class="meta">No audit events yet.</div>'; }
-async function loadActivity() { const r = await fetch('/api/activity?limit=80'); const d = await r.json(); $('activity').innerHTML = (d.events || []).map((e) => card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `Agent: ${e.agentId || '-'}<br/>Task: ${e.taskId || e.requestId || '-'}<br/>Status: ${e.status || e.dispatchState || e.ok || '-'}<br/>${e.title || e.topic || ''}`)).join('') || '<div class="meta">No activity yet.</div>'; }
+function applyActivityFilters(rows) {
+  const agent = ($('activityAgent')?.value || '').trim().toLowerCase();
+  const type = ($('activityType')?.value || '').trim().toLowerCase();
+  const winH = Number($('activityWindow')?.value || 0);
+  const now = Date.now();
+  return rows.filter((e) => {
+    if (agent && !String(e.agentId || '').toLowerCase().includes(agent)) return false;
+    if (type && !String(e.type || '').toLowerCase().includes(type)) return false;
+    if (winH > 0) {
+      const ts = new Date(e.ts || 0).getTime();
+      if (!ts || (now - ts) > winH * 3600 * 1000) return false;
+    }
+    return true;
+  });
+}
+
+function renderActivity() {
+  const rows = applyActivityFilters(latestActivity || []);
+  $('activity').innerHTML = rows.map((e, i) => {
+    const isFail = e.ok === false || String(e.status || '').toLowerCase() === 'error' || String(e.dispatchState || '').toLowerCase() === 'error';
+    const badge = isFail ? '<span class="badge off">failure</span>' : '<span class="badge ok">ok</span>';
+    return card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `${badge}<br/>Agent: ${e.agentId || '-'}<br/>Task: ${e.taskId || e.requestId || '-'}<br/>Status: ${e.status || e.dispatchState || e.ok || '-'}<br/>${e.title || e.topic || ''}`, `<button onclick="viewActivityDetail(${i})">Details</button>`);
+  }).join('') || '<div class="meta">No activity yet.</div>';
+}
+
+async function loadActivity() {
+  const r = await fetch('/api/activity?limit=120');
+  const d = await r.json();
+  latestActivity = d.events || [];
+  renderActivity();
+}
 async function loadCronHistory() { const r = await fetch('/api/audit?limit=120'); const d = await r.json(); const rows = (d.events || []).filter((e) => e.type === 'cron_run').slice(0, 20); $('cronHistory').innerHTML = rows.map((e) => card(`cron_run · ${new Date(e.ts).toLocaleString()}`, `Cron id: ${e.id || '-'}<br/>Actor: ${e.actor || '-'}<br/>Result: ${e.ok === false ? 'error' : 'ok'}`)).join('') || '<div class="meta">No cron run history yet.</div>'; }
 async function searchTranscripts() { const q = $('q').value || ''; const agentId = $('agentFilter').value || ''; const r = await fetch(`/api/transcripts?q=${encodeURIComponent(q)}&agentId=${encodeURIComponent(agentId)}&limit=80`); const d = await r.json(); $('transcripts').innerHTML = (d.results || []).map((x) => card(`${x.agentId} · ${x.role}`, `${x.timestamp}<br/>session: ${x.sessionId}<br/><br/>${x.text}`)).join('') || '<div class="meta">No transcript matches.</div>'; }
 
@@ -267,6 +313,7 @@ $('refreshBtn').addEventListener('click', refresh);
 $('searchBtn').addEventListener('click', searchTranscripts);
 $('addTaskBtn').addEventListener('click', addTask);
 $('addResearchBtn').addEventListener('click', addResearchRequest);
+$('activityFilterBtn').addEventListener('click', renderActivity);
 $('taskTabs').addEventListener('click', (ev) => {
   const btn = ev.target.closest('.task-tab');
   if (!btn) return;
@@ -304,4 +351,4 @@ const ws = new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.type === 'dashboard') renderDashboard(m.data); };
 
 refresh();
-window.viewFile = viewFile; window.editFile = editFile; window.approveOne = approveOne; window.runCron = runCron; window.toggleHeartbeat = toggleHeartbeat; window.moveTask = moveTask; window.dispatchTaskToAgent = dispatchTaskToAgent; window.viewTaskResult = viewTaskResult; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;
+window.viewFile = viewFile; window.editFile = editFile; window.approveOne = approveOne; window.runCron = runCron; window.toggleHeartbeat = toggleHeartbeat; window.moveTask = moveTask; window.dispatchTaskToAgent = dispatchTaskToAgent; window.viewTaskResult = viewTaskResult; window.viewActivityDetail = viewActivityDetail; window.deleteTask = deleteTask; window.setTaskTab = setTaskTab; window.approveResearch = approveResearch; window.declineResearch = declineResearch; window.viewTextResult = viewTextResult;

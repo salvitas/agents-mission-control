@@ -54,7 +54,21 @@
 
     <section data-panel="tasks" hidden><h2 class="section-title">Kanban</h2><div class="row"><input id="taskTitle" placeholder="Task title"/><input id="taskAgent" placeholder="agent id (e.g. lucy-dev)"/><input id="taskTab" placeholder="feature tab (e.g. growth)"/><button id="addTaskBtn">Add task</button></div><div id="taskTabs" class="row"></div><div class="kanban" id="kanban"></div></section>
     <section data-panel="transcripts" hidden><h2 class="section-title">Transcript Explorer</h2><div class="row"><input id="q" placeholder="Search transcripts"/><input id="agentFilter" placeholder="agent id (optional)"/><button id="searchBtn">Search</button></div><div id="transcripts" class="cards"></div></section>
-    <section data-panel="activity" hidden><h2 class="section-title">Unified Activity Timeline</h2><div id="activity" class="cards"></div></section>
+    <section data-panel="activity" hidden>
+      <h2 class="section-title">Unified Activity Timeline</h2>
+      <div class="row">
+        <input id="activityAgent" placeholder="Filter agent (e.g. lucy-dev)"/>
+        <input id="activityType" placeholder="Filter type (e.g. task_dispatch)"/>
+        <select id="activityWindow">
+          <option value="0">All time</option>
+          <option value="24">Last 24h</option>
+          <option value="168">Last 7d</option>
+          <option value="720">Last 30d</option>
+        </select>
+        <button id="activityFilterBtn">Apply</button>
+      </div>
+      <div id="activity" class="cards"></div>
+    </section>
     <section data-panel="audit" hidden><h2 class="section-title">Approval Audit Trail</h2><div id="audit" class="cards"></div></section>
     <section data-panel="viewer" hidden><h2 class="section-title">Viewer</h2><div class="row"><button id="editModeBtn">Edit mode</button><button id="saveEditBtn">Save</button><span id="editingPath" class="meta"></span></div><pre id="viewer">Select a file…</pre><textarea id="editor" style="display:none;width:100%;min-height:50vh"></textarea></section>
   </main>
