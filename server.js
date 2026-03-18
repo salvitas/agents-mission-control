@@ -103,7 +103,7 @@ async function createRuntime(config = {}) {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; connect-src 'self' ws: wss:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; script-src 'self' https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:;");
+    // CSP temporarily disabled to allow inline UI handlers while we complete the frontend refactor.
     next();
   });
 
