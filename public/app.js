@@ -62,6 +62,11 @@ function renderDashboard(d) {
     ['Last 7 days', d.tokenUsage?.last7d ?? 0],
     ['Last 30 days', d.tokenUsage?.last30d ?? 0],
   ].map(([k, v]) => `<div class="card"><h3>${k}</h3><div class="meta">Token usage window</div><div style="font-size:1.4rem;font-weight:700;margin-top:6px;">${v}</div></div>`).join('');
+
+  $('runtimeCards').innerHTML = agents.map((a) => {
+    const r = d.runtimeByAgent?.[a.id] || { inProgress: 0, review: 0, todo: 0, lastTaskAt: null };
+    return card(`${a.name} (${a.id})`, `In Progress: ${r.inProgress}<br/>Review: ${r.review}<br/>Todo: ${r.todo}<br/>Last task: ${r.lastTaskAt ? new Date(r.lastTaskAt).toLocaleString() : 'n/a'}`);
+  }).join('') || '<div class="meta">No runtime data.</div>';
   $('agents').innerHTML = agents.map((a) => {
     const h = hb.get(a.id);
     const insight = ai.get(a.id) || { cronCount: 0, coreFiles: [], memoryFiles: [], skills: [] };
@@ -85,7 +90,25 @@ function renderDashboard(d) {
     const ap = rel.endsWith('.md') ? `<button onclick="approveOne('${encodeURIComponent(rel)}')">Approve next</button>` : '';
     return card(rel, `${b}<br/>Adapter: ${q.queue?.adapter || 'n/a'}<br/>Updated: ${new Date(q.mtimeMs).toLocaleString()}`, `<button onclick="viewFile('${encodeURIComponent(rel)}')">Open</button>${ap}`);
   }).join('') || '<div class="meta">No queue files detected.</div>';
-  $('artifacts').innerHTML = (d.artifacts || []).filter((a) => a.type !== 'queue').slice(0, 80).map((a) => card(`${a.type.toUpperCase()} · ${a.rel}`, `Updated: ${new Date(a.mtimeMs).toLocaleString()}<br/>Size: ${a.size} bytes`, `<button onclick="viewFile('${encodeURIComponent(a.rel)}')">Open</button>`)).join('');
+  const nonQueueArtifacts = (d.artifacts || []).filter((a) => a.type !== 'queue');
+  const groupedArtifacts = new Map();
+  for (const a of nonQueueArtifacts) {
+    const key = a.agentId || 'unassigned';
+    if (!groupedArtifacts.has(key)) groupedArtifacts.set(key, []);
+    groupedArtifacts.get(key).push(a);
+  }
+  const groupedHtml = Array.from(groupedArtifacts.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([agentId, rows]) => {
+      const items = rows
+        .sort((x, y) => (y.mtimeMs || 0) - (x.mtimeMs || 0))
+        .slice(0, 40)
+        .map((a) => `<div class="meta" style="margin-bottom:8px;"><strong>${a.type.toUpperCase()}</strong> · ${a.rel}<br/>Updated: ${new Date(a.mtimeMs).toLocaleString()} · Size: ${a.size} bytes<br/><button onclick="viewFile('${encodeURIComponent(a.rel)}')">Open</button></div>`)
+        .join('');
+      return card(`${agentId} (${rows.length})`, items || 'No artifacts');
+    })
+    .join('');
+  $('artifacts').innerHTML = groupedHtml || '<div class="meta">No report/log artifacts detected.</div>';
   refreshIcons();
 }
 
@@ -99,7 +122,7 @@ async function loadTasks() {
 async function refresh() {
   const r = await fetch('/api/dashboard');
   renderDashboard(await r.json());
-  await Promise.all([loadAudit(), loadTasks(), loadResearchRequests()]);
+  await Promise.all([loadAudit(), loadTasks(), loadResearchRequests(), loadActivity(), loadCronHistory()]);
 }
 
 async function addTask() {
@@ -234,7 +257,9 @@ async function saveEditedFile() {
 async function approveOne(p) { ensureToken(); const rel = decodeURIComponent(p); await fetch('/api/approve', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ path: rel }) }); await refresh(); await viewFile(p); }
 async function runCron(id) { ensureToken(); const r = await fetch('/api/cron/run', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ id }) }); const d = await r.json(); if (d.error) alert(d.error); else alert('Cron run triggered'); await refresh(); }
 async function toggleHeartbeat(agentId, mode) { ensureToken(); const r = await fetch(`/api/heartbeat/${encodeURIComponent(agentId)}/${encodeURIComponent(mode)}`, { method: 'POST', headers: authHeaders() }); const d = await r.json(); if (d.error) alert(d.error); await refresh(); }
-async function loadAudit() { const r = await fetch('/api/audit?limit=40'); const d = await r.json(); $('audit').innerHTML = (d.events || []).map((e) => card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `Path/ID: ${e.path || e.id || e.taskId || e.agentId || '-'}<br/>By: ${e.actor || 'dashboard'}`)).join('') || '<div class="meta">No audit events yet.</div>'; }
+async function loadAudit() { const r = await fetch('/api/audit?limit=60'); const d = await r.json(); $('audit').innerHTML = (d.events || []).map((e) => card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `Path/ID: ${e.path || e.id || e.taskId || e.agentId || '-'}<br/>By: ${e.actor || 'dashboard'}`)).join('') || '<div class="meta">No audit events yet.</div>'; }
+async function loadActivity() { const r = await fetch('/api/activity?limit=80'); const d = await r.json(); $('activity').innerHTML = (d.events || []).map((e) => card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `Agent: ${e.agentId || '-'}<br/>Task: ${e.taskId || e.requestId || '-'}<br/>Status: ${e.status || e.dispatchState || e.ok || '-'}<br/>${e.title || e.topic || ''}`)).join('') || '<div class="meta">No activity yet.</div>'; }
+async function loadCronHistory() { const r = await fetch('/api/audit?limit=120'); const d = await r.json(); const rows = (d.events || []).filter((e) => e.type === 'cron_run').slice(0, 20); $('cronHistory').innerHTML = rows.map((e) => card(`cron_run · ${new Date(e.ts).toLocaleString()}`, `Cron id: ${e.id || '-'}<br/>Actor: ${e.actor || '-'}<br/>Result: ${e.ok === false ? 'error' : 'ok'}`)).join('') || '<div class="meta">No cron run history yet.</div>'; }
 async function searchTranscripts() { const q = $('q').value || ''; const agentId = $('agentFilter').value || ''; const r = await fetch(`/api/transcripts?q=${encodeURIComponent(q)}&agentId=${encodeURIComponent(agentId)}&limit=80`); const d = await r.json(); $('transcripts').innerHTML = (d.results || []).map((x) => card(`${x.agentId} · ${x.role}`, `${x.timestamp}<br/>session: ${x.sessionId}<br/><br/>${x.text}`)).join('') || '<div class="meta">No transcript matches.</div>'; }
 
 document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => switchPanel(b.dataset.tab)));

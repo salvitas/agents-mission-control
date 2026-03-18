@@ -83,6 +83,12 @@ test('dashboard loads, queue detected, and agent insights include cron counts', 
   assert.equal(typeof res.body.tokenUsage.today, 'number');
   assert.equal(typeof res.body.tokenUsage.last7d, 'number');
   assert.equal(typeof res.body.tokenUsage.last30d, 'number');
+  assert.equal(typeof res.body.runtimeByAgent, 'object');
+}));
+
+test('activity timeline endpoint returns events', async () => withRuntime(async ({ rt }) => {
+  const res = await request(rt.app).get('/api/activity?limit=20').expect(200);
+  assert.equal(Array.isArray(res.body.events), true);
 }));
 
 test('approve endpoint requires token and updates markdown', async () => withRuntime(async ({ rt, fx }) => {

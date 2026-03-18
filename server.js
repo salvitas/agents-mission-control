@@ -279,7 +279,19 @@ async function createRuntime(config = {}) {
       if (age <= 30 * day) sums.last30d += t;
     }
 
-    return { now: nowMs, workspace: cfg.workspace, status, cronJobs: cron.jobs || [], artifacts, adaptersCount: adapters.length, agentInsights, tokenUsage: sums };
+    const taskRows = await readTasks();
+    const runtimeByAgent = {};
+    for (const t of taskRows) {
+      const a = String(t.agentId || 'unassigned');
+      if (!runtimeByAgent[a]) runtimeByAgent[a] = { inProgress: 0, review: 0, todo: 0, lastTaskAt: null };
+      if (t.status === 'in_progress') runtimeByAgent[a].inProgress += 1;
+      else if (t.status === 'review') runtimeByAgent[a].review += 1;
+      else if (t.status === 'todo') runtimeByAgent[a].todo += 1;
+      const ts = t.updatedAt || t.createdAt || null;
+      if (ts && (!runtimeByAgent[a].lastTaskAt || String(ts) > String(runtimeByAgent[a].lastTaskAt))) runtimeByAgent[a].lastTaskAt = ts;
+    }
+
+    return { now: nowMs, workspace: cfg.workspace, status, cronJobs: cron.jobs || [], artifacts, adaptersCount: adapters.length, agentInsights, tokenUsage: sums, runtimeByAgent };
   }
 
   async function appendAudit(event) {
@@ -291,6 +303,39 @@ async function createRuntime(config = {}) {
     const safeLimit = Math.max(1, Math.min(500, Number(limit || 200)));
     const txt = await fsp.readFile(cfg.auditPath, 'utf8').catch(() => '');
     return txt.split(/\r?\n/).filter(Boolean).slice(-safeLimit).map((l) => safeJson(l)).filter(Boolean).reverse();
+  }
+
+  async function buildActivityTimeline(limit = 120) {
+    const safeLimit = Math.max(1, Math.min(300, Number(limit || 120)));
+    const [audit, tasks, research] = await Promise.all([
+      readAudit(safeLimit),
+      readTasks(),
+      readResearchRequests(),
+    ]);
+
+    const taskEvents = tasks.slice(0, safeLimit).map((t) => ({
+      ts: t.updatedAt || t.createdAt,
+      type: 'task_state',
+      taskId: t.id,
+      agentId: t.agentId,
+      status: t.status,
+      dispatchState: t.dispatchState,
+      title: t.title,
+    }));
+
+    const researchEvents = research.slice(0, safeLimit).map((r) => ({
+      ts: r.updatedAt || r.createdAt,
+      type: 'research_state',
+      requestId: r.id,
+      status: r.status,
+      capability: r.capability,
+      topic: r.topic,
+    }));
+
+    return [...audit, ...taskEvents, ...researchEvents]
+      .filter((x) => x && x.ts)
+      .sort((a, b) => String(b.ts).localeCompare(String(a.ts)))
+      .slice(0, safeLimit);
   }
 
   async function searchTranscripts({ agentId = '', q = '', limit = 60 }) {
@@ -458,6 +503,9 @@ async function createRuntime(config = {}) {
     } catch (e) { next(e); }
   });
   app.get('/api/audit', async (req, res, next) => { try { res.json({ events: await readAudit(req.query.limit) }); } catch (e) { next(e); } });
+  app.get('/api/activity', async (req, res, next) => {
+    try { res.json({ events: await buildActivityTimeline(req.query.limit || 120) }); } catch (e) { next(e); }
+  });
 
   app.post('/api/file/save', requireToken, async (req, res, next) => {
     try {
