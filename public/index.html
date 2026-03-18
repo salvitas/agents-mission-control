@@ -43,6 +43,7 @@
 
       <section id="pane-overview" class="pane active">
         <div id="agentKpis" class="kpi-grid"></div>
+        <div id="missionWidgets" class="cards"></div>
         <div id="agentSummary" class="cards"></div>
       </section>
 
@@ -89,6 +90,14 @@
       <textarea id="editor"></textarea>
     </aside>
   </main>
+
+  <nav class="mobile-nav" id="mobileNav">
+    <button data-pane="overview"><i data-lucide="layout-grid"></i></button>
+    <button data-pane="tasks"><i data-lucide="list-todo"></i></button>
+    <button data-pane="control"><i data-lucide="sliders-horizontal"></i></button>
+    <button data-pane="timeline"><i data-lucide="timeline"></i></button>
+    <button data-pane="files"><i data-lucide="folder"></i></button>
+  </nav>
 
   <script src="/app.js"></script>
 </body>

@@ -60,6 +60,16 @@ function renderAgentWorkspace() {
     ['Cron jobs', insight.cronCount],
   ].map(([k, v]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
 
+  const queuePressure = agentTasks.filter((t) => t.status === 'todo').length;
+  const failureCount = agentTasks.filter((t) => t.dispatchState === 'error').length;
+  const riskScore = Math.min(100, queuePressure * 12 + failureCount * 25 + (runtime.inProgress || 0) * 7);
+
+  $('missionWidgets').innerHTML = [
+    card('Queue Pressure', `Pending tasks: ${queuePressure}<br/>In progress: ${runtime.inProgress || 0}`),
+    card('Dispatch Health', `Failures: ${failureCount}<br/>Review queue: ${runtime.review || 0}`),
+    card('Risk Score', `<span class="pill" style="${riskScore > 70 ? 'border-color:#ef4444;color:#fca5a5' : riskScore > 40 ? 'border-color:#f59e0b;color:#fcd34d' : 'border-color:#22c55e;color:#86efac'}">${riskScore}/100</span><br/>Composite from queue, failures, load`),
+  ].join('');
+
   $('agentSummary').innerHTML = [
     card('Status', `Heartbeat: ${hb.get(a.id)?.enabled ? 'on' : 'off'}<br/>Tasks: ${agentTasks.length}<br/>Last task: ${runtime.lastTaskAt ? new Date(runtime.lastTaskAt).toLocaleString() : 'n/a'}`),
     card('Skills', (insight.skills || []).map((s) => s.name).join(', ') || 'No skills detected'),
@@ -82,7 +92,7 @@ function renderTaskBoard(agentId) {
   const rows = latestTasks.filter((t) => t.agentId === agentId);
   $('taskBoard').innerHTML = STATUS.map((s) => {
     const col = rows.filter((r) => r.status === s);
-    return `<div class="col"><h3>${s.replace('_', ' ')}</h3>${col.map((t) => `<div class="task"><div><strong>${t.title}</strong></div><div class="meta">${t.tab} · ${t.dispatchState || 'idle'}</div><div class="actions"><button class="task-btn" data-action="next" data-id="${t.id}" data-status="${s}"><i data-lucide="arrow-right"></i> Next</button><button class="task-btn" data-action="send" data-id="${t.id}"><i data-lucide="send"></i> Send</button><button class="task-btn" data-action="result" data-id="${t.id}"><i data-lucide="file-text"></i> Result</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
+    return `<div class="col drop-col" data-drop-status="${s}"><h3>${s.replace('_', ' ')}</h3>${col.map((t) => `<div class="task" draggable="true" data-drag-id="${t.id}"><div><strong>${t.title}</strong></div><div class="meta">${t.tab} · ${t.dispatchState || 'idle'}</div><div class="actions"><button class="task-btn" data-action="next" data-id="${t.id}" data-status="${s}"><i data-lucide="arrow-right"></i> Next</button><button class="task-btn" data-action="send" data-id="${t.id}"><i data-lucide="send"></i> Send</button><button class="task-btn" data-action="result" data-id="${t.id}"><i data-lucide="file-text"></i> Result</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
   }).join('');
 
   const tabs = ['all', ...new Set(rows.map((t) => t.tab || 'general'))];
@@ -214,6 +224,11 @@ async function toggleHeartbeat(mode) {
 
 // events
 document.querySelectorAll('.wtab').forEach((b) => b.addEventListener('click', () => switchPane(b.dataset.tab)));
+$('mobileNav').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('[data-pane]');
+  if (!btn) return;
+  switchPane(btn.dataset.pane);
+});
 $('refreshBtn').addEventListener('click', refreshAll);
 $('addTaskBtn').addEventListener('click', addTask);
 $('activityFilterBtn').addEventListener('click', () => renderTimeline(selectedAgentId));
@@ -248,6 +263,34 @@ $('taskBoard').addEventListener('click', (ev) => {
     const t = latestTasks.find((x) => x.id === id);
     showInViewer(t?.result || t?.dispatchError || 'No result yet', `task:${id}`);
   }
+});
+
+let dragTaskId = null;
+$('taskBoard').addEventListener('dragstart', (ev) => {
+  const t = ev.target.closest('[data-drag-id]');
+  if (!t) return;
+  dragTaskId = t.dataset.dragId;
+});
+$('taskBoard').addEventListener('dragover', (ev) => {
+  const col = ev.target.closest('.drop-col');
+  if (!col) return;
+  ev.preventDefault();
+  col.classList.add('drag-over');
+});
+$('taskBoard').addEventListener('dragleave', (ev) => {
+  const col = ev.target.closest('.drop-col');
+  if (!col) return;
+  col.classList.remove('drag-over');
+});
+$('taskBoard').addEventListener('drop', (ev) => {
+  const col = ev.target.closest('.drop-col');
+  if (!col || !dragTaskId) return;
+  ev.preventDefault();
+  col.classList.remove('drag-over');
+  const st = col.dataset.dropStatus;
+  if (!st) return;
+  mutateTask(dragTaskId, { status: st });
+  dragTaskId = null;
 });
 
 $('agentControls').addEventListener('click', (ev) => {
