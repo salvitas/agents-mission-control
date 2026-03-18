@@ -7,6 +7,7 @@ let dashboard = null;
 let tasks = [];
 let activity = [];
 let currentFilePath = '';
+let pinnedAgents = JSON.parse(localStorage.getItem('missionPinnedAgents') || '[]');
 
 function authHeaders(){ const h = {'Content-Type':'application/json'}; if(token) h['x-mission-token']=token; return h; }
 function ensureToken(){ if(token) return true; token=(prompt('MISSION_CONTROL_TOKEN:')||'').trim(); localStorage.setItem('missionToken',token); return true; }
@@ -27,7 +28,13 @@ function renderTop(){
 }
 
 function renderAgents(){
-  const agents = dashboard?.status?.agents?.agents || [];
+  const agentsRaw = dashboard?.status?.agents?.agents || [];
+  const agents = [...agentsRaw].sort((a,b)=>{
+    const ap = pinnedAgents.includes(a.id) ? 1 : 0;
+    const bp = pinnedAgents.includes(b.id) ? 1 : 0;
+    if (ap !== bp) return bp - ap;
+    return String(a.name||a.id).localeCompare(String(b.name||b.id));
+  });
   const hb = new Map((dashboard?.status?.heartbeat?.agents || []).map(x=>[x.agentId,x]));
   const ai = new Map((dashboard?.agentInsights || []).map(x=>[x.agentId,x]));
 
@@ -45,23 +52,28 @@ function renderAgents(){
       `<button data-agent="${a.id}" data-action="toggle">${insight.heartbeatConfigured ? 'Disable HB' : 'Enable HB'}</button>`,
       ...cron.slice(0,3).map(c=>`<button data-agent="${a.id}" data-cron="${c.id}">Run ${c.name}</button>`),
       `<button data-agent="${a.id}" data-action="newtask">+ Task</button>`,
-      `<button data-agent="${a.id}" data-action="expand">Expand</button>`
+      `<button data-agent="${a.id}" data-action="expand">Expand</button>`,
+      `<button class="pin-btn ${pinnedAgents.includes(a.id) ? 'active' : ''}" data-agent="${a.id}" data-action="pin">${pinnedAgents.includes(a.id) ? 'Unpin' : 'Pin'}</button>`
     ].join('');
 
+    const skillsChips = (insight.skills||[]).slice(0,14).map(s=>`<span class="chip">${s.name}</span>`).join('') || '<span class="chip">none</span>';
+    const workflowChips = `<span class="chip"><strong>in_progress</strong>${inProg}</span><span class="chip"><strong>review</strong>${review}</span><span class="chip"><strong>todo</strong>${todo}</span>`;
+    const cronChips = cron.slice(0,10).map(c=>`<span class="chip">${c.name}</span>`).join('') || '<span class="chip">none</span>';
+
     const extra = `<div class="expand hidden" id="exp-${idx}">
-      <div class="meta"><strong>Skills:</strong> ${(insight.skills||[]).map(s=>s.name).join(', ') || 'none'}</div>
-      <div class="meta" style="margin-top:6px"><strong>Workflow:</strong> in_progress=${inProg}, review=${review}, todo=${todo}</div>
+      <div class="meta"><strong>Skills:</strong><div>${skillsChips}</div></div>
+      <div class="meta" style="margin-top:6px"><strong>Workflow:</strong><div>${workflowChips}</div></div>
       <div class="meta" style="margin-top:6px"><strong>Files:</strong><br/>${files.map(f=>`${f.name} <button class="open-file" data-path="${encodeURIComponent(f.relPath)}">Open</button>`).join('<br/>') || 'none'}</div>
-      <div class="meta" style="margin-top:6px"><strong>Cron:</strong><br/>${cron.map(c=>`${c.name} (${c.schedule?.expr||'n/a'})`).join('<br/>') || 'none'}</div>
+      <div class="meta" style="margin-top:6px"><strong>Cron:</strong><div>${cronChips}</div></div>
       <div class="meta" style="margin-top:6px"><strong>Tasks:</strong><br/>${t.slice(0,8).map(x=>`[${x.status}] ${x.title} <button class="task-send" data-task="${x.id}">Send</button> <button class="task-result" data-task="${x.id}">Result</button>`).join('<br/>') || 'none'}</div>
     </div>`;
 
-    return card(
+    return `<div class="${pinnedAgents.includes(a.id) ? 'pinned' : ''}">${card(
       `${a.name} (${a.id})`,
       `Heartbeat: ${hb.get(a.id)?.enabled ? 'on' : 'off'}<br/>Last active: ${fmtAge(a.lastActiveAgeMs)} ago<br/>Cron: ${insight.cronCount} · Tasks: ${t.length}<br/>Queue: ${todo} · Running: ${inProg} · Review: ${review}`,
       actions,
       extra
-    );
+    )}</div>`;
   }).join('') || '<div class="meta">No agents found.</div>';
 
   refreshIcons();
@@ -180,6 +192,13 @@ $('agentCards').addEventListener('click', async (ev) => {
   if(btn.dataset.action === 'toggle' && a){
     const text = btn.textContent.toLowerCase();
     return toggleHeartbeat(a, text.includes('disable') ? 'disable' : 'enable');
+  }
+  if(btn.dataset.action === 'pin' && a){
+    if (pinnedAgents.includes(a)) pinnedAgents = pinnedAgents.filter((x) => x !== a);
+    else pinnedAgents = [a, ...pinnedAgents.filter((x) => x !== a)];
+    localStorage.setItem('missionPinnedAgents', JSON.stringify(pinnedAgents));
+    renderAgents();
+    return;
   }
   if(btn.dataset.action === 'newtask' && a) return createTaskForAgent(a);
   if(btn.dataset.cron) return runCron(btn.dataset.cron);
