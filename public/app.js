@@ -19,6 +19,10 @@ function switchPane(tab) {
   document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === `pane-${tab}`));
 }
 
+function refreshIcons() {
+  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+}
+
 function renderFleet() {
   const agents = latestDashboard?.status?.agents?.agents || [];
   if (!selectedAgentId && agents[0]) selectedAgentId = agents[0].id;
@@ -62,12 +66,12 @@ function renderAgentWorkspace() {
   ].join('');
 
   $('agentControls').innerHTML = [
-    card('Heartbeat', `Current: ${insight.heartbeatConfigured ? 'configured' : 'disabled'}`, `${insight.heartbeatConfigured ? `<button data-hb="disable">Disable</button>` : `<button data-hb="enable">Enable</button>`}`),
-    card('Quick Actions', 'Operations on current agent', `<button data-open="timeline">Open timeline</button><button data-open="tasks">Open tasks</button>`),
+    card('Heartbeat', `Current: ${insight.heartbeatConfigured ? 'configured' : 'disabled'}`, `${insight.heartbeatConfigured ? `<button data-hb="disable"><i data-lucide="pause"></i> Disable</button>` : `<button data-hb="enable"><i data-lucide="play"></i> Enable</button>`}`),
+    card('Quick Actions', 'Operations on current agent', `<button data-open="timeline"><i data-lucide="timeline"></i> Timeline</button><button data-open="tasks"><i data-lucide="list-todo"></i> Tasks</button>`),
   ].join('');
 
   const cronJobs = (d.cronJobs || []).filter((c) => c.agentId === a.id);
-  $('cronCards').innerHTML = cronJobs.map((c) => card(c.name, `Schedule: ${c.schedule?.expr || 'n/a'}<br/>Last: ${c.state?.lastRunStatus || 'n/a'}`, `<button data-cron="${c.id}">Run now</button>`)).join('') || '<div class="meta">No cron jobs for this agent.</div>';
+  $('cronCards').innerHTML = cronJobs.map((c) => card(c.name, `Schedule: ${c.schedule?.expr || 'n/a'}<br/>Last: ${c.state?.lastRunStatus || 'n/a'}`, `<button data-cron="${c.id}"><i data-lucide="play-circle"></i> Run now</button>`)).join('') || '<div class="meta">No cron jobs for this agent.</div>';
 
   renderTaskBoard(a.id);
   renderTimeline(a.id);
@@ -78,7 +82,7 @@ function renderTaskBoard(agentId) {
   const rows = latestTasks.filter((t) => t.agentId === agentId);
   $('taskBoard').innerHTML = STATUS.map((s) => {
     const col = rows.filter((r) => r.status === s);
-    return `<div class="col"><h3>${s.replace('_', ' ')}</h3>${col.map((t) => `<div class="task"><div><strong>${t.title}</strong></div><div class="meta">${t.tab} · ${t.dispatchState || 'idle'}</div><div class="actions"><button class="task-btn" data-action="next" data-id="${t.id}" data-status="${s}">Next</button><button class="task-btn" data-action="send" data-id="${t.id}">Send</button><button class="task-btn" data-action="result" data-id="${t.id}">Result</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
+    return `<div class="col"><h3>${s.replace('_', ' ')}</h3>${col.map((t) => `<div class="task"><div><strong>${t.title}</strong></div><div class="meta">${t.tab} · ${t.dispatchState || 'idle'}</div><div class="actions"><button class="task-btn" data-action="next" data-id="${t.id}" data-status="${s}"><i data-lucide="arrow-right"></i> Next</button><button class="task-btn" data-action="send" data-id="${t.id}"><i data-lucide="send"></i> Send</button><button class="task-btn" data-action="result" data-id="${t.id}"><i data-lucide="file-text"></i> Result</button></div></div>`).join('') || '<div class="meta">No tasks</div>'}</div>`;
   }).join('');
 
   const tabs = ['all', ...new Set(rows.map((t) => t.tab || 'general'))];
@@ -105,7 +109,7 @@ function renderTimeline(agentId) {
   $('timelineCards').innerHTML = rows.slice(0, 80).map((e, idx) => {
     const fail = e.ok === false || String(e.status || '').toLowerCase() === 'error' || String(e.dispatchState || '').toLowerCase() === 'error';
     const badge = fail ? '<span class="pill" style="border-color:#ef4444;color:#fca5a5">failure</span>' : '<span class="pill" style="border-color:#22c55e;color:#86efac">ok</span>';
-    return card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `${badge}<br/>Agent: ${e.agentId || '-'}<br/>Task: ${e.taskId || e.requestId || '-'}<br/>Status: ${e.status || e.dispatchState || e.ok || '-'}<br/>${e.title || e.topic || ''}`, `<button class="tl-detail" data-idx="${idx}">Details</button>`);
+    return card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `${badge}<br/>Agent: ${e.agentId || '-'}<br/>Task: ${e.taskId || e.requestId || '-'}<br/>Status: ${e.status || e.dispatchState || e.ok || '-'}<br/>${e.title || e.topic || ''}`, `<button class="tl-detail" data-idx="${idx}"><i data-lucide="file-search"></i> Details</button>`);
   }).join('') || '<div class="meta">No timeline events.</div>';
 
   $('activityTicker').innerHTML = rows.slice(0, 8).map((e) => `<div class="card"><div class="meta">${new Date(e.ts).toLocaleTimeString()} · ${e.type} · ${e.status || e.dispatchState || e.ok || '-'}</div></div>`).join('') || '<div class="meta">No recent activity.</div>';
@@ -115,8 +119,8 @@ function renderFiles(agentId, insight) {
   const allMd = [...(insight.coreFiles || []), ...(insight.memoryFiles || [])].filter((f) => f.name.toLowerCase().endsWith('.md'));
   const artifacts = (latestDashboard?.artifacts || []).filter((a) => a.agentId === agentId && a.type !== 'queue');
   $('fileCards').innerHTML = [
-    card('Markdown files', allMd.slice(0, 40).map((f) => `${f.name} <button class="open-file" data-path="${encodeURIComponent(f.relPath)}">Open</button>`).join('<br/>') || 'No markdown files'),
-    card('Artifacts', artifacts.slice(0, 40).map((a) => `${a.type.toUpperCase()} · ${a.rel} <button class="open-file" data-path="${encodeURIComponent(a.rel)}">Open</button>`).join('<br/>') || 'No artifacts'),
+    card('Markdown files', allMd.slice(0, 40).map((f) => `${f.name} <button class="open-file" data-path="${encodeURIComponent(f.relPath)}"><i data-lucide="folder-open"></i> Open</button>`).join('<br/>') || 'No markdown files'),
+    card('Artifacts', artifacts.slice(0, 40).map((a) => `${a.type.toUpperCase()} · ${a.rel} <button class="open-file" data-path="${encodeURIComponent(a.rel)}"><i data-lucide="file-search"></i> Open</button>`).join('<br/>') || 'No artifacts'),
   ].join('');
 }
 
@@ -136,6 +140,7 @@ async function refreshAll() {
   renderTopState();
   renderFleet();
   renderAgentWorkspace();
+  refreshIcons();
 }
 
 async function addTask() {
@@ -282,7 +287,19 @@ ws.onmessage = async (ev) => {
     renderTopState();
     renderFleet();
     renderAgentWorkspace();
+    refreshIcons();
   }
 };
+
+document.addEventListener('keydown', (ev) => {
+  if (ev.target && ['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
+  const k = ev.key.toLowerCase();
+  if (k === '1') switchPane('overview');
+  else if (k === '2') switchPane('tasks');
+  else if (k === '3') switchPane('control');
+  else if (k === '4') switchPane('timeline');
+  else if (k === '5') switchPane('files');
+  else if (k === 'r') refreshAll();
+});
 
 refreshAll();
