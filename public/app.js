@@ -297,6 +297,12 @@ function renderActivity() {
     const badge = isFail ? '<span class="badge off">failure</span>' : '<span class="badge ok">ok</span>';
     return card(`${e.type} · ${new Date(e.ts).toLocaleString()}`, `${badge}<br/>Agent: ${e.agentId || '-'}<br/>Task: ${e.taskId || e.requestId || '-'}<br/>Status: ${e.status || e.dispatchState || e.ok || '-'}<br/>${e.title || e.topic || ''}`, `<button onclick="viewActivityDetail(${i})">Details</button>`);
   }).join('') || '<div class="meta">No activity yet.</div>';
+
+  const ticker = (latestActivity || []).slice(0, 8).map((e) => {
+    const isFail = e.ok === false || String(e.status || '').toLowerCase() === 'error' || String(e.dispatchState || '').toLowerCase() === 'error';
+    return `<div class="meta" style="margin-bottom:8px;"><span class="badge ${isFail ? 'off' : 'ok'}">${isFail ? '!' : '•'}</span> ${new Date(e.ts).toLocaleTimeString()} · ${e.type} · ${e.agentId || '-'} · ${e.status || e.dispatchState || e.ok || '-'}</div>`;
+  }).join('');
+  $('activityTicker').innerHTML = ticker ? card('Recent events', ticker) : '<div class="meta">No live events yet.</div>';
 }
 
 async function loadActivity() {

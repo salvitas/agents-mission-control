@@ -11,8 +11,11 @@
 <body class="bg-slate-950 text-slate-100">
   <header class="sticky top-0 z-10 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-      <h1 class="text-lg font-semibold tracking-tight">Mission Control</h1>
-      <div class="flex items-center gap-3">
+      <div>
+        <h1 class="text-lg font-semibold tracking-tight">Mission Control</h1>
+        <p class="text-xs text-slate-400">Fleet Grid + Timeline + Execution</p>
+      </div>
+      <div class="flex items-center gap-2">
         <span id="gatewayDot" class="gateway-dot" title="Gateway status"></span>
         <button id="refreshBtn" class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium hover:bg-blue-500">Refresh</button>
       </div>
@@ -21,40 +24,23 @@
 
   <main class="mx-auto max-w-7xl px-4 py-4">
     <div class="mb-4 flex flex-wrap gap-2" id="tabsWrap">
-      <button class="tab active" data-tab="overview">Overview</button>
-      <button class="tab" data-tab="usage">Usage</button>
+      <button class="tab active" data-tab="home">Home</button>
+      <button class="tab" data-tab="timeline">Timeline</button>
+      <button class="tab" data-tab="execution">Execution</button>
       <button class="tab" data-tab="operations">Operations</button>
-      <button class="tab" data-tab="tasks">Tasks Kanban</button>
-      <button class="tab" data-tab="transcripts">Transcripts</button>
-      <button class="tab" data-tab="activity">Activity</button>
-      <button class="tab" data-tab="audit">Audit</button>
+      <button class="tab" data-tab="files">Files</button>
+      <button class="tab" data-tab="analytics">Analytics</button>
       <button class="tab" data-tab="viewer">Viewer</button>
     </div>
 
-    <section data-panel="overview">
+    <section data-panel="home">
       <section class="grid" id="stats"></section>
-      <section><h2 class="section-title">Agent Runtime Observability</h2><div id="runtimeCards" class="cards"></div></section>
-      <section><h2 class="section-title">Agents & Heartbeats</h2><div id="agents" class="cards"></div></section>
+      <section><h2 class="section-title">Agent Fleet Grid</h2><div id="runtimeCards" class="cards"></div></section>
+      <section><h2 class="section-title">Agent Control Cards</h2><div id="agents" class="cards"></div></section>
+      <section><h2 class="section-title">Live Activity Ticker</h2><div id="activityTicker" class="cards"></div></section>
     </section>
 
-    <section data-panel="usage" hidden>
-      <h2 class="section-title">Token Usage</h2>
-      <div id="usageCards" class="cards"></div>
-    </section>
-
-    <section data-panel="operations" hidden>
-      <section><h2 class="section-title">Cron Jobs (Run / Retry)</h2><div id="cronJobs" class="cards"></div><h3 class="section-title">Cron Run History</h3><div id="cronHistory" class="cards"></div></section>
-      <section><h2 class="section-title">Queues / Approvals</h2><div id="queues" class="cards"></div></section>
-      <section><h2 class="section-title">Reports / Logs</h2><div id="artifacts" class="cards"></div></section>
-      <section><h2 class="section-title">Lucy Research (approval workflow)</h2>
-        <div class="row"><select id="researchCapability"><option value="web_research">web_research</option><option value="compare_options">compare_options</option><option value="market_scan">market_scan</option><option value="fact_check">fact_check</option></select><input id="researchTopic" placeholder="Research topic"/><input id="researchContext" placeholder="Context / constraints"/><button id="addResearchBtn">Submit request</button></div>
-        <div id="researchRequests" class="cards"></div>
-      </section>
-    </section>
-
-    <section data-panel="tasks" hidden><h2 class="section-title">Kanban</h2><div class="row"><input id="taskTitle" placeholder="Task title"/><input id="taskAgent" placeholder="agent id (e.g. lucy-dev)"/><input id="taskTab" placeholder="feature tab (e.g. growth)"/><button id="addTaskBtn">Add task</button></div><div id="taskTabs" class="row"></div><div class="kanban" id="kanban"></div></section>
-    <section data-panel="transcripts" hidden><h2 class="section-title">Transcript Explorer</h2><div class="row"><input id="q" placeholder="Search transcripts"/><input id="agentFilter" placeholder="agent id (optional)"/><button id="searchBtn">Search</button></div><div id="transcripts" class="cards"></div></section>
-    <section data-panel="activity" hidden>
+    <section data-panel="timeline" hidden>
       <h2 class="section-title">Unified Activity Timeline</h2>
       <div class="row">
         <input id="activityAgent" placeholder="Filter agent (e.g. lucy-dev)"/>
@@ -69,7 +55,36 @@
       </div>
       <div id="activity" class="cards"></div>
     </section>
-    <section data-panel="audit" hidden><h2 class="section-title">Approval Audit Trail</h2><div id="audit" class="cards"></div></section>
+
+    <section data-panel="execution" hidden>
+      <h2 class="section-title">Mission Kanban</h2>
+      <div class="row"><input id="taskTitle" placeholder="Task title"/><input id="taskAgent" placeholder="agent id (e.g. lucy-dev)"/><input id="taskTab" placeholder="feature tab"/><button id="addTaskBtn">Add task</button></div>
+      <div id="taskTabs" class="row"></div>
+      <div class="kanban" id="kanban"></div>
+    </section>
+
+    <section data-panel="operations" hidden>
+      <section><h2 class="section-title">Cron Mission Center</h2><div id="cronJobs" class="cards"></div><h3 class="section-title">Cron Run History</h3><div id="cronHistory" class="cards"></div></section>
+      <section><h2 class="section-title">Queues / Approvals</h2><div id="queues" class="cards"></div></section>
+      <section><h2 class="section-title">Lucy Research (approval workflow)</h2>
+        <div class="row"><select id="researchCapability"><option value="web_research">web_research</option><option value="compare_options">compare_options</option><option value="market_scan">market_scan</option><option value="fact_check">fact_check</option></select><input id="researchTopic" placeholder="Research topic"/><input id="researchContext" placeholder="Context / constraints"/><button id="addResearchBtn">Submit request</button></div>
+        <div id="researchRequests" class="cards"></div>
+      </section>
+    </section>
+
+    <section data-panel="files" hidden>
+      <h2 class="section-title">Files, Reports & Search</h2>
+      <section><div id="artifacts" class="cards"></div></section>
+      <section><h2 class="section-title">Transcript Explorer</h2><div class="row"><input id="q" placeholder="Search transcripts"/><input id="agentFilter" placeholder="agent id (optional)"/><button id="searchBtn">Search</button></div><div id="transcripts" class="cards"></div></section>
+    </section>
+
+    <section data-panel="analytics" hidden>
+      <h2 class="section-title">Analytics & Audit</h2>
+      <div id="usageCards" class="cards"></div>
+      <h3 class="section-title">Approval Audit Trail</h3>
+      <div id="audit" class="cards"></div>
+    </section>
+
     <section data-panel="viewer" hidden><h2 class="section-title">Viewer</h2><div class="row"><button id="editModeBtn">Edit mode</button><button id="saveEditBtn">Save</button><span id="editingPath" class="meta"></span></div><pre id="viewer">Select a file…</pre><textarea id="editor" style="display:none;width:100%;min-height:50vh"></textarea></section>
   </main>
 
