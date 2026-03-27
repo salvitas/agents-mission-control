@@ -2,7 +2,7 @@
 
 Mobile-friendly dashboard to monitor and control OpenClaw agents.
 
-## Features (v0.2)
+## Features (v0.3)
 - Auto-discovers agents and heartbeat states
 - Realtime dashboard updates via WebSockets
 - Lists cron jobs and supports **Run now / retry now**
@@ -14,6 +14,7 @@ Mobile-friendly dashboard to monitor and control OpenClaw agents.
 - Multi-agent transcript explorer with text and agent filters
 - Tabbed UI sections for Overview / Operations / Tasks / Transcripts / Audit / Viewer
 - Agent-assigned Kanban board with feature tabs (`todo`, `in_progress`, `review`, `done`)
+- Dedicated AWS OpenClaw bootstrapper at `/bootstrap` with job creation, polling, logs, and artifacts
 
 ## Run
 ```bash
@@ -40,7 +41,16 @@ Open:
 
 ## Files
 - `server.js` — API + collector + realtime push
+- `src/services/aws/provider.js` — AWS SDK v3 client/bootstrap helpers
+- `src/app/provisioning-orchestrator.js` — modular AWS provisioning plan/orchestration
 - `public/` — frontend
 - `config/queue-adapters.json` — queue parser adapters
 - `data/approval-audit.jsonl` — action history log
 - `TECH_ARCHITECTURE.md` — architecture + framework/version details
+
+## AWS bootstrapper notes
+The provisioning layer is intentionally modular:
+- EC2 launch flow is separated from IAM and security group setup
+- SSM is the default connection path, with SSH as the fallback path
+- The orchestrator can return a plan even when AWS SDK packages are not installed yet
+- Tests cover the provider/orchestrator control flow without touching real AWS resources

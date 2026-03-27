@@ -149,3 +149,16 @@ test('research request approval workflow works', async () => withRuntime(async (
   const pending = list.body.requests.find((r) => r.status === 'pending');
   await request(rt.app).post(`/api/research/requests/${pending.id}/decline`).set('x-mission-token', 'tkn').send({ reason: 'not needed' }).expect(200);
 }));
+
+test('bootstrapper job flow creates, polls, and serves artifacts', async () => withRuntime(async ({ rt }) => {
+  const created = await request(rt.app).post('/api/bootstrap/jobs').send({ agentName: 'lucy-dev', region: 'us-west-2', instanceType: 't3.small', repoUrl: 'https://github.com/example/openclaw' }).expect(200);
+  const id = created.body.job.id;
+  assert.equal(created.body.job.state, 'queued');
+  const detail = await request(rt.app).get(`/api/bootstrap/jobs/${id}`).expect(200);
+  assert.equal(Array.isArray(detail.body.logs), true);
+  assert.equal(detail.body.artifacts.some((a) => a.name === 'env.json'), true);
+  await request(rt.app).get(`/api/bootstrap/jobs/${id}/artifacts/env.json`).expect(200);
+  await request(rt.app).get(`/api/bootstrap/jobs/${id}/artifacts/user-data.sh`).expect(200);
+  const list = await request(rt.app).get('/api/bootstrap/jobs').expect(200);
+  assert.equal(list.body.jobs[0].id, id);
+}));

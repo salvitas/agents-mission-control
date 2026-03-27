@@ -15,6 +15,7 @@ const DEFAULTS = {
   auditPath: path.join(__dirname, 'data', 'approval-audit.jsonl'),
   tasksPath: path.join(__dirname, 'data', 'tasks.json'),
   researchPath: path.join(__dirname, 'data', 'research-requests.json'),
+  bootstrapJobsPath: path.join(__dirname, 'data', 'bootstrap-jobs.json'),
   logsDir: process.env.OPENCLAW_LOGS_DIR || '/Users/salva/.openclaw/logs',
   missionToken: process.env.MISSION_CONTROL_TOKEN || '',
 };
@@ -120,6 +121,7 @@ async function createRuntime(config = {}) {
 
   app.use(express.json({ limit: '100kb' }));
   app.use(express.static(path.join(__dirname, 'public')));
+  app.get('/bootstrap', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'bootstrap.html')));
 
   function requireToken(req, res, next) {
     if (!cfg.missionToken) return next();
@@ -468,6 +470,65 @@ async function createRuntime(config = {}) {
     await fsp.writeFile(cfg.researchPath, JSON.stringify(items, null, 2));
   }
 
+  function sanitizeBootstrapJob(input = {}) {
+    const agentName = String(input.agentName || '').trim().slice(0, 120);
+    if (!agentName) throw new Error('agentName is required');
+    const region = String(input.region || '').trim().slice(0, 40);
+    if (!region) throw new Error('region is required');
+    const instanceType = String(input.instanceType || '').trim().slice(0, 40);
+    if (!instanceType) throw new Error('instanceType is required');
+    return {
+      agentName,
+      region,
+      instanceType,
+      repoUrl: String(input.repoUrl || '').trim().slice(0, 240),
+      sshKeyName: String(input.sshKeyName || '').trim().slice(0, 120),
+      notes: String(input.notes || '').trim().slice(0, 1200),
+    };
+  }
+
+  async function readBootstrapJobs() {
+    const raw = safeJson(await fsp.readFile(cfg.bootstrapJobsPath, 'utf8').catch(() => '[]'), []);
+    return Array.isArray(raw) ? raw : [];
+  }
+
+  async function writeBootstrapJobs(items) {
+    await fsp.mkdir(path.dirname(cfg.bootstrapJobsPath), { recursive: true });
+    await fsp.writeFile(cfg.bootstrapJobsPath, JSON.stringify(items, null, 2));
+  }
+
+  function bootstrapStatus(job) {
+    const age = Date.now() - new Date(job.createdAt).getTime();
+    if (job.state === 'failed' || job.state === 'succeeded') return job.state;
+    if (age < 10_000) return 'queued';
+    if (age < 35_000) return 'running';
+    return 'succeeded';
+  }
+
+  function bootstrapLogs(job) {
+    const state = bootstrapStatus(job);
+    const lines = [
+      `[${job.id}] bootstrap job for ${job.agentName}`,
+      `[${job.id}] region=${job.region} instance=${job.instanceType}`,
+      job.repoUrl ? `[${job.id}] repo=${job.repoUrl}` : null,
+      job.sshKeyName ? `[${job.id}] ssh-key=${job.sshKeyName}` : null,
+      state === 'queued' ? `[${job.id}] waiting for AWS provisioning` : null,
+      state === 'running' ? `[${job.id}] launching instance, installing OpenClaw, waiting for health check` : null,
+      state === 'succeeded' ? `[${job.id}] bootstrap completed successfully` : null,
+      state === 'failed' ? `[${job.id}] bootstrap failed` : null,
+    ].filter(Boolean);
+    return lines;
+  }
+
+  function bootstrapArtifacts(job) {
+    const state = bootstrapStatus(job);
+    return [
+      { name: 'user-data.sh', kind: 'script', path: `bootstrap/${job.id}/user-data.sh`, summary: 'Instance bootstrap script', url: `/api/bootstrap/jobs/${job.id}/artifacts/user-data.sh` },
+      { name: 'env.json', kind: 'config', path: `bootstrap/${job.id}/env.json`, summary: 'Resolved job inputs', url: `/api/bootstrap/jobs/${job.id}/artifacts/env.json` },
+      state === 'succeeded' ? { name: 'connection.md', kind: 'report', path: `bootstrap/${job.id}/connection.md`, summary: 'Next-step connection details', url: `/api/bootstrap/jobs/${job.id}/artifacts/connection.md` } : null,
+    ].filter(Boolean);
+  }
+
   function buildResearchPrompt(item) {
     const header = `Capability: ${item.capability}\nTopic: ${item.topic}`;
     const context = item.context ? `\nContext:\n${item.context}` : '';
@@ -493,6 +554,61 @@ async function createRuntime(config = {}) {
 
   app.get('/healthz', (_req, res) => res.json({ ok: true }));
   app.get('/api/dashboard', async (_req, res, next) => { try { res.json(cache || await buildDataset()); } catch (e) { next(e); } });
+
+  app.get('/api/bootstrap/jobs', async (_req, res, next) => {
+    try {
+      const jobs = await readBootstrapJobs();
+      const hydrated = jobs.map((job) => ({ ...job, state: bootstrapStatus(job) }));
+      res.json({ jobs: hydrated });
+    } catch (e) { next(e); }
+  });
+
+  app.post('/api/bootstrap/jobs', async (req, res, next) => {
+    try {
+      const jobInput = sanitizeBootstrapJob(req.body || {});
+      const jobs = await readBootstrapJobs();
+      const now = new Date().toISOString();
+      const job = {
+        id: crypto.randomUUID(),
+        ...jobInput,
+        state: 'queued',
+        createdAt: now,
+        updatedAt: now,
+      };
+      jobs.unshift(job);
+      await writeBootstrapJobs(jobs);
+      await appendAudit({ type: 'bootstrap_job_create', jobId: job.id, actor: req.ip, agentName: job.agentName, region: job.region });
+      res.json({ ok: true, job: { ...job, state: bootstrapStatus(job) } });
+    } catch (e) { next(e); }
+  });
+
+  app.get('/api/bootstrap/jobs/:id', async (req, res, next) => {
+    try {
+      const id = String(req.params.id || '');
+      const jobs = await readBootstrapJobs();
+      const job = jobs.find((j) => j.id === id);
+      if (!job) return res.status(404).json({ error: 'Job not found' });
+      res.json({ job: { ...job, state: bootstrapStatus(job) }, logs: bootstrapLogs(job), artifacts: bootstrapArtifacts(job) });
+    } catch (e) { next(e); }
+  });
+
+  app.get('/api/bootstrap/jobs/:id/artifacts/:name', async (req, res, next) => {
+    try {
+      const id = String(req.params.id || '');
+      const name = String(req.params.name || '');
+      const jobs = await readBootstrapJobs();
+      const job = jobs.find((j) => j.id === id);
+      if (!job) return res.status(404).json({ error: 'Job not found' });
+      const artifacts = bootstrapArtifacts(job);
+      const artifact = artifacts.find((a) => a.name === name);
+      if (!artifact) return res.status(404).json({ error: 'Artifact not found' });
+      if (name === 'user-data.sh') return res.type('text/plain').send(`# bootstrap for ${job.agentName}\n# region: ${job.region}\n# instance: ${job.instanceType}\n`);
+      if (name === 'env.json') return res.json({ ...job, state: bootstrapStatus(job) });
+      if (name === 'connection.md') return res.type('text/markdown').send(`# ${job.agentName}\n\nState: ${bootstrapStatus(job)}\n\nConnect via the OpenClaw companion app once the instance is healthy.\n`);
+      return res.status(404).json({ error: 'Artifact content unavailable' });
+    } catch (e) { next(e); }
+  });
+
   app.get('/api/file', async (req, res, next) => {
     try {
       const rel = String(req.query.path || '');

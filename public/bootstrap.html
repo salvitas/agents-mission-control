@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>OpenClaw Bootstrapper</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>OpenClaw Bootstrapper</h1>
+      <p>Provision an AWS bootstrap job and watch it complete</p>
+    </div>
+    <div class="top-actions">
+      <a class="ghost-link" href="/">Mission Control</a>
+      <button id="refreshBootstrapBtn" class="primary-btn">Refresh</button>
+    </div>
+  </header>
+
+  <main class="stack">
+    <section class="split bootstrap-grid">
+      <div>
+        <h2 class="section-title">Create job</h2>
+        <form id="bootstrapForm" class="panel form-grid">
+          <label>Agent name <input name="agentName" placeholder="lucy-dev" required /></label>
+          <label>AWS region <input name="region" placeholder="ap-southeast-1" value="ap-southeast-1" required /></label>
+          <label>Instance type <input name="instanceType" placeholder="t3.small" value="t3.small" required /></label>
+          <label>Git repo <input name="repoUrl" placeholder="https://github.com/org/openclaw.git" /></label>
+          <label>SSH key name <input name="sshKeyName" placeholder="openclaw-bootstrap" /></label>
+          <label>Notes <textarea name="notes" rows="4" placeholder="Optional bootstrap notes"></textarea></label>
+          <div class="actions">
+            <button type="submit" class="primary-btn">Create bootstrap job</button>
+          </div>
+        </form>
+      </div>
+      <div>
+        <h2 class="section-title">Current job</h2>
+        <div id="bootstrapSummary" class="panel meta">No job selected.</div>
+        <div class="panel" style="margin-top:10px">
+          <div class="row">
+            <button id="refreshLogsBtn">Reload logs</button>
+            <button id="copyJobBtn">Copy job id</button>
+          </div>
+          <pre id="bootstrapLogs">Logs will appear here.</pre>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">Jobs</h2>
+      <div id="bootstrapJobs" class="cards"></div>
+    </section>
+
+    <section>
+      <h2 class="section-title">Artifacts</h2>
+      <div id="bootstrapArtifacts" class="cards"></div>
+    </section>
+  </main>
+
+  <script src="/bootstrap.js"></script>
+</body>
+</html>

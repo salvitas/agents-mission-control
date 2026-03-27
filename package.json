@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "@aws-sdk/client-ec2": "^3.758.0",
+    "@aws-sdk/client-iam": "^3.758.0",
+    "@aws-sdk/client-ssm": "^3.758.0"
   },
   "devDependencies": {
     "supertest": "^7.0.0"
